@@ -13,7 +13,7 @@ import (
 	"os"
 	"strings"
 
-	"mailhook/internal/server"
+	"github.com/PasinduYeshan/mailhook/internal/server"
 )
 
 // apiURL is the Query API base URL the CLI talks to.

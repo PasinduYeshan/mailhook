@@ -8,8 +8,8 @@ import (
 	"log"
 	"os"
 
-	"mailhook/internal/cli"
-	"mailhook/internal/daemon"
+	"github.com/PasinduYeshan/mailhook/internal/cli"
+	"github.com/PasinduYeshan/mailhook/internal/daemon"
 )
 
 func main() {

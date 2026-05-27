@@ -11,28 +11,35 @@ for any app that emits SMTP or webhooks.
 - Web UI on `127.0.0.1:8091` and a JSON API + live NDJSON tail.
 - ~6 MB binary, ~12 MB RSS, ~0% idle CPU.
 
-## Install (macOS / Linux)
+## Install
 
 Requires **Go 1.22+** (`brew install go` on macOS).
 
+### One-shot
+
 ```bash
-git clone <repo-url> mailhook
-cd mailhook
-make install
+go install github.com/PasinduYeshan/mailhook/cmd/mailhook@latest
 ```
 
-This builds the binary, copies it to `$HOME/.local/bin/`, and creates the
-state dir under `$HOME/.local/var/mailhook/`. If `~/.local/bin` is not on
-your `PATH`, add this to your shell rc:
+Lands in `$(go env GOPATH)/bin` (usually `~/go/bin`). Add it to `PATH` if
+not already:
 
 ```bash
-export PATH="$HOME/.local/bin:$PATH"
+export PATH="$(go env GOPATH)/bin:$PATH"
 ```
 
 Verify:
 
 ```bash
 mailhook help
+```
+
+### From source
+
+```bash
+git clone https://github.com/PasinduYeshan/mailhook
+cd mailhook
+make install              # installs to $HOME/.local/bin
 ```
 
 ## Quick start

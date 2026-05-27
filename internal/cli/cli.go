@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"text/tabwriter"
 
-	"mailhook/internal/server"
+	"github.com/PasinduYeshan/mailhook/internal/server"
 )
 
 // ---------------------------------------------------------------------------
