@@ -42,6 +42,17 @@ cd mailhook
 make install              # installs to $HOME/.local/bin
 ```
 
+## Uninstall
+
+```bash
+mailhook stop                                  # stop daemon if running
+rm "$(go env GOPATH)/bin/mailhook"             # if installed via `go install`
+# OR (if installed from source):
+cd /path/to/mailhook && make uninstall
+
+rm -rf "$HOME/.local/var/mailhook"             # optional: remove logs + pidfile
+```
+
 ## Quick start
 
 ```bash
