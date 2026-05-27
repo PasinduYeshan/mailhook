@@ -21,9 +21,10 @@
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--fg); }
+html, body { height: 100%; }
+body { font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--fg); display: flex; flex-direction: column; }
 code, pre { font-family: var(--mono); font-size: 12px; }
-header { padding: 10px 18px; background: var(--bg-elev); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+header { padding: 10px 18px; background: var(--bg-elev); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; flex-wrap: wrap; flex-shrink: 0; }
 h1 { font-size: 14px; font-weight: 600; color: var(--accent); letter-spacing: 0.3px; }
 .tabs { display: flex; gap: 4px; }
 .tabs button { background: none; border: none; color: var(--muted); padding: 5px 12px; cursor: pointer; font: inherit; border-radius: 5px; }
@@ -37,19 +38,32 @@ h1 { font-size: 14px; font-weight: 600; color: var(--accent); letter-spacing: 0.
 .controls input[type=checkbox] { accent-color: var(--green); }
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
 .dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+main { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+.list-panel { width: 42%; min-width: 320px; max-width: 640px; overflow-y: auto; border-right: 1px solid var(--border); background: var(--bg); }
+.detail-panel { flex: 1; overflow-y: auto; padding: 20px 24px; background: var(--bg); display: flex; flex-direction: column; gap: 4px; }
+
 table { width: 100%; border-collapse: collapse; }
-th, td { padding: 7px 14px; text-align: left; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
-th { background: var(--bg-elev); color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
+th { background: var(--bg-elev); color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 1; }
 tr.row { cursor: pointer; }
 tr.row:hover { background: var(--bg-elev); }
-tr.row.expanded { background: var(--bg-elev); }
-tr.detail td { padding: 0; background: var(--bg); }
-tr.detail pre { padding: 14px 24px; color: #c9d1d9; overflow-x: auto; white-space: pre-wrap; word-break: break-word; max-height: 480px; overflow-y: auto; }
-tr.detail .section { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 24px 2px; display: flex; align-items: center; gap: 8px; }
-tr.detail .section button { background: var(--border-soft); border: 1px solid var(--border); color: var(--muted); padding: 1px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; text-transform: none; letter-spacing: 0; font-family: inherit; }
-tr.detail .section button:hover { color: var(--fg); }
-tr.detail .section button.active { color: var(--accent); border-color: var(--accent); }
-.mail-iframe { width: calc(100% - 48px); margin: 4px 24px; min-height: 200px; max-height: 500px; border: 1px solid var(--border); border-radius: 4px; background: white; }
+tr.row.selected { background: rgba(31,111,235,0.12); }
+tr.row.selected td { border-bottom-color: var(--accent); }
+
+.detail-empty { color: var(--dim); padding: 60px 20px; text-align: center; }
+.detail-head { padding-bottom: 12px; border-bottom: 1px solid var(--border-soft); margin-bottom: 6px; }
+.detail-title { font-size: 15px; font-weight: 600; color: var(--fg); }
+.detail-meta { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.6; word-break: break-all; }
+.detail-meta code { font-size: 11px; }
+.detail-pre { padding: 10px 14px; background: var(--bg-deep); border: 1px solid var(--border-soft); border-radius: 5px; color: #c9d1d9; overflow-x: auto; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow-y: auto; }
+.section { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 0 4px; display: flex; align-items: center; gap: 8px; }
+.section button { background: var(--border-soft); border: 1px solid var(--border); color: var(--muted); padding: 2px 9px; border-radius: 3px; cursor: pointer; font-size: 10px; text-transform: none; letter-spacing: 0; font-family: inherit; }
+.section button:hover { color: var(--fg); }
+.section button.active { color: var(--accent); border-color: var(--accent); background: rgba(31,111,235,0.1); }
+
+.mail-iframe { flex: 1; min-height: 420px; width: 100%; border: 1px solid var(--border); border-radius: 5px; background: white; }
+
 .empty { padding: 60px 20px; text-align: center; color: var(--dim); }
 .method { display: inline-block; padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; font-family: var(--mono); }
 .method.GET { background: rgba(31,111,235,0.2); color: var(--accent); }
@@ -60,13 +74,17 @@ tr.detail .section button.active { color: var(--accent); border-color: var(--acc
 .method.ANY { background: rgba(110,118,129,0.25); color: var(--muted); }
 code.id { color: var(--dim); font-size: 11px; }
 .subject { color: var(--fg); }
-footer { padding: 8px 18px; color: var(--dim); font-size: 11px; border-top: 1px solid var(--border-soft); }
+footer { padding: 8px 18px; color: var(--dim); font-size: 11px; border-top: 1px solid var(--border-soft); flex-shrink: 0; }
 .btn-danger { background: rgba(248,81,73,0.15) !important; border-color: rgba(248,81,73,0.3) !important; color: var(--red) !important; }
 .btn-primary { background: rgba(31,111,235,0.2) !important; border-color: rgba(31,111,235,0.4) !important; color: var(--accent) !important; }
-.actions { display: flex; gap: 6px; }
+.actions { display: flex; gap: 6px; justify-content: flex-end; }
 .actions button { background: none; border: 1px solid var(--border); color: var(--muted); padding: 2px 8px; border-radius: 4px; font: inherit; cursor: pointer; font-size: 11px; }
 .actions button:hover { color: var(--fg); background: var(--border-soft); }
 .actions button.delete:hover { color: var(--red); border-color: var(--red); }
+.detail-actions { display: flex; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-soft); }
+.detail-actions button { background: var(--border-soft); border: 1px solid var(--border); color: var(--fg); padding: 5px 12px; border-radius: 4px; font: inherit; cursor: pointer; font-size: 12px; }
+.detail-actions button:hover { background: var(--border); }
+.detail-actions button.delete:hover { color: var(--red); border-color: var(--red); }
 
 /* Rule form */
 #rule-form { display: none; padding: 16px 18px; background: var(--bg-elev); border-bottom: 1px solid var(--border); }
@@ -148,109 +166,192 @@ footer { padding: 8px 18px; color: var(--dim); font-size: 11px; border-top: 1px 
 </div>
 
 <main>
-  <table id="table">
-    <thead id="thead"></thead>
-    <tbody id="tbody"></tbody>
-  </table>
-  <div class="empty" id="empty" hidden>no captures yet — send mail to <code>:1025</code> or POST to <code>:8090</code></div>
+  <div class="list-panel" id="list-panel">
+    <table id="table">
+      <thead id="thead"></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>no captures yet — send mail to <code>:1025</code> or POST to <code>:8090</code></div>
+  </div>
+  <div class="detail-panel" id="detail-panel">
+    <div class="detail-empty">Click a row to view details.</div>
+  </div>
 </main>
 <footer id="footer">SMTP :1025 · HOOK :8090 · API :8091</footer>
 
 <script>
-const kindState = { current: 'mail', data: [], expanded: new Set() };
+const kindState = {
+  current: 'mail',
+  data: [],
+  selected: { mail: null, hook: null, rule: null },
+};
 const mailViewMode = {};   // id → 'html' | 'text' | 'raw'  (default = best available)
 let editingRuleId = null;  // null = create, non-null = update
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+// --- Row renderers (compact, left panel) ---
+
+function rowClass(id) {
+  return kindState.selected[kindState.current] === id ? 'row selected' : 'row';
+}
+
 function renderMailRow(m) {
   const t = new Date(m.time).toLocaleTimeString();
-  const expanded = kindState.expanded.has(m.id);
-  let row = `<tr class="row${expanded?' expanded':''}" data-id="${m.id}">`
+  return `<tr class="${rowClass(m.id)}" data-id="${m.id}">`
     + `<td>${t}</td>`
     + `<td>${esc(m.from)}</td>`
-    + `<td>${esc((m.to||[]).join(', '))}</td>`
     + `<td class="subject">${esc(m.subject||'(no subject)')}</td>`
-    + `<td><code class="id">${m.id}</code></td>`
-    + `<td class="actions"><button class="delete" data-act="del-mail" data-id="${m.id}">delete</button></td>`
+    + `<td class="actions"><button class="delete" data-act="del-mail" data-id="${m.id}" title="delete">×</button></td>`
     + `</tr>`;
-  if (expanded) {
-    const headerLines = Object.entries(m.headers||{}).map(([k,v]) => `${k}: ${v}`).join('\n');
-    const hasHTML = !!m.html;
-    const hasText = !!m.text;
-    // Default view: rendered HTML if available; else text; else raw.
-    const mode = mailViewMode[m.id] || (hasHTML ? 'html' : (hasText ? 'text' : 'raw'));
-
-    const tabs = [];
-    if (hasHTML) tabs.push(`<button data-act="mail-mode" data-id="${m.id}" data-mode="html"${mode==='html'?' class="active"':''}>rendered</button>`);
-    if (hasText) tabs.push(`<button data-act="mail-mode" data-id="${m.id}" data-mode="text"${mode==='text'?' class="active"':''}>text</button>`);
-    tabs.push(`<button data-act="mail-mode" data-id="${m.id}" data-mode="raw"${mode==='raw'?' class="active"':''}>raw</button>`);
-
-    let bodyBlock = '';
-    if (mode === 'html' && hasHTML) {
-      bodyBlock = `<iframe class="mail-iframe" sandbox="" srcdoc="${esc(m.html)}"></iframe>`;
-    } else if (mode === 'text' && hasText) {
-      bodyBlock = `<pre>${esc(m.text)}</pre>`;
-    } else {
-      bodyBlock = `<pre>${esc(m.raw || m.body || '(empty)')}</pre>`;
-    }
-
-    row += `<tr class="detail"><td colspan="6">`
-      + `<div class="section">Headers</div><pre>${esc(headerLines)}</pre>`
-      + `<div class="section">Body ${tabs.join('')}</div>${bodyBlock}`
-      + `</td></tr>`;
-  }
-  return row;
 }
 
 function renderHookRow(h) {
   const t = new Date(h.time).toLocaleTimeString();
-  const expanded = kindState.expanded.has(h.id);
   const method = (h.method||'').toUpperCase();
-  let row = `<tr class="row${expanded?' expanded':''}" data-id="${h.id}">`
+  return `<tr class="${rowClass(h.id)}" data-id="${h.id}">`
     + `<td>${t}</td>`
     + `<td><span class="method ${method}">${method}</span></td>`
     + `<td>${esc(h.path)}</td>`
-    + `<td>${esc(h.query||'')}</td>`
-    + `<td>${(h.body||'').length}</td>`
-    + `<td><code class="id">${h.id}</code></td>`
-    + `<td class="actions"><button class="delete" data-act="del-hook" data-id="${h.id}">delete</button></td>`
+    + `<td class="actions"><button class="delete" data-act="del-hook" data-id="${h.id}" title="delete">×</button></td>`
     + `</tr>`;
-  if (expanded) {
-    const headerLines = Object.entries(h.headers||{}).map(([k,v]) => `${k}: ${(v||[]).join(', ')}`).join('\n');
-    row += `<tr class="detail"><td colspan="7">`
-      + `<div class="section">From</div><pre>${esc(h.remote||'')}</pre>`
-      + `<div class="section">Headers</div><pre>${esc(headerLines)}</pre>`
-      + `<div class="section">Body</div><pre>${esc(h.body||'(empty)')}</pre>`
-      + `</td></tr>`;
-  }
-  return row;
 }
 
 function renderRuleRow(r) {
   const method = (r.method && r.method !== '*') ? r.method.toUpperCase() : 'ANY';
-  const created = new Date(r.created).toLocaleTimeString();
-  const headerLines = Object.entries(r.headers||{}).map(([k,v]) => `${k}: ${v}`).join('\n');
-  const expanded = kindState.expanded.has(r.id);
-  let row = `<tr class="row${expanded?' expanded':''}" data-id="${r.id}">`
-    + `<td>${created}</td>`
+  return `<tr class="${rowClass(r.id)}" data-id="${r.id}">`
     + `<td><span class="method ${method === 'ANY' ? 'ANY' : method}">${method}</span></td>`
     + `<td>${esc(r.path||'*')}</td>`
     + `<td>${r.status||200}</td>`
-    + `<td>${r.delay_ms||0}ms</td>`
-    + `<td>${esc((r.body||'').slice(0,60))}${(r.body||'').length>60?'…':''}</td>`
     + `<td class="actions">`
-    +   `<button data-act="edit-rule" data-id="${r.id}">edit</button>`
-    +   `<button class="delete" data-act="del-rule" data-id="${r.id}">delete</button>`
+    +   `<button data-act="edit-rule" data-id="${r.id}" title="edit">✎</button>`
+    +   `<button class="delete" data-act="del-rule" data-id="${r.id}" title="delete">×</button>`
     + `</td>`
     + `</tr>`;
-  if (expanded) {
-    row += `<tr class="detail"><td colspan="7">`
-      + `<div class="section">Headers</div><pre>${esc(headerLines||'(none)')}</pre>`
-      + `<div class="section">Body</div><pre>${esc(r.body||'(empty)')}</pre>`
-      + `</td></tr>`;
+}
+
+// --- Detail renderers (right panel) ---
+
+function renderMailDetail(m) {
+  const headerLines = Object.entries(m.headers||{}).map(([k,v]) => `${k}: ${v}`).join('\n');
+  const hasHTML = !!m.html;
+  const hasText = !!m.text;
+  const mode = mailViewMode[m.id] || (hasHTML ? 'html' : (hasText ? 'text' : 'raw'));
+
+  const tabs = [];
+  if (hasHTML) tabs.push(`<button data-act="mail-mode" data-id="${m.id}" data-mode="html"${mode==='html'?' class="active"':''}>rendered</button>`);
+  if (hasText) tabs.push(`<button data-act="mail-mode" data-id="${m.id}" data-mode="text"${mode==='text'?' class="active"':''}>text</button>`);
+  tabs.push(`<button data-act="mail-mode" data-id="${m.id}" data-mode="raw"${mode==='raw'?' class="active"':''}>raw</button>`);
+
+  let bodyBlock;
+  if (mode === 'html' && hasHTML) {
+    bodyBlock = `<iframe class="mail-iframe" sandbox="" srcdoc="${esc(m.html)}"></iframe>`;
+  } else if (mode === 'text' && hasText) {
+    bodyBlock = `<pre class="detail-pre" style="max-height:none;flex:1;">${esc(m.text)}</pre>`;
+  } else {
+    bodyBlock = `<pre class="detail-pre" style="max-height:none;flex:1;">${esc(m.raw || m.body || '(empty)')}</pre>`;
   }
-  return row;
+
+  return `
+    <div class="detail-head">
+      <div class="detail-title">${esc(m.subject||'(no subject)')}</div>
+      <div class="detail-meta">
+        <div><b>From:</b> ${esc(m.from)}</div>
+        <div><b>To:</b> ${esc((m.to||[]).join(', '))}</div>
+        <div><b>Time:</b> ${new Date(m.time).toLocaleString()} · <code class="id">${m.id}</code></div>
+      </div>
+    </div>
+    <div class="section">Headers</div>
+    <pre class="detail-pre">${esc(headerLines)}</pre>
+    <div class="section">Body ${tabs.join('')}</div>
+    ${bodyBlock}
+    <div class="detail-actions">
+      <button class="delete" data-act="del-mail" data-id="${m.id}">delete</button>
+    </div>
+  `;
+}
+
+function renderHookDetail(h) {
+  const headerLines = Object.entries(h.headers||{}).map(([k,v]) => `${k}: ${(v||[]).join(', ')}`).join('\n');
+  const method = (h.method||'').toUpperCase();
+  return `
+    <div class="detail-head">
+      <div class="detail-title"><span class="method ${method}">${method}</span> ${esc(h.path)}</div>
+      <div class="detail-meta">
+        <div><b>Query:</b> ${esc(h.query||'(none)')}</div>
+        <div><b>From:</b> ${esc(h.remote||'')}</div>
+        <div><b>Time:</b> ${new Date(h.time).toLocaleString()} · <code class="id">${h.id}</code></div>
+      </div>
+    </div>
+    <div class="section">Headers</div>
+    <pre class="detail-pre">${esc(headerLines||'(none)')}</pre>
+    <div class="section">Body (${(h.body||'').length} bytes)</div>
+    <pre class="detail-pre" style="max-height:none;flex:1;">${esc(h.body||'(empty)')}</pre>
+    <div class="detail-actions">
+      <button class="delete" data-act="del-hook" data-id="${h.id}">delete</button>
+    </div>
+  `;
+}
+
+function renderRuleDetail(r) {
+  const method = (r.method && r.method !== '*') ? r.method.toUpperCase() : 'ANY';
+  const headerLines = Object.entries(r.headers||{}).map(([k,v]) => `${k}: ${v}`).join('\n');
+  return `
+    <div class="detail-head">
+      <div class="detail-title"><span class="method ${method === 'ANY' ? 'ANY' : method}">${method}</span> ${esc(r.path||'*')}</div>
+      <div class="detail-meta">
+        <div><b>Status:</b> ${r.status||200}</div>
+        <div><b>Delay:</b> ${r.delay_ms||0} ms</div>
+        <div><b>Created:</b> ${new Date(r.created).toLocaleString()} · <code class="id">${r.id}</code></div>
+      </div>
+    </div>
+    <div class="section">Response headers</div>
+    <pre class="detail-pre">${esc(headerLines||'(none)')}</pre>
+    <div class="section">Response body</div>
+    <pre class="detail-pre" style="max-height:none;flex:1;">${esc(r.body||'(empty)')}</pre>
+    <div class="detail-actions">
+      <button data-act="edit-rule" data-id="${r.id}">edit</button>
+      <button class="delete" data-act="del-rule" data-id="${r.id}">delete</button>
+    </div>
+  `;
+}
+
+function renderDetail() {
+  const detail = $('detail-panel');
+  const kind = kindState.current;
+  const id = kindState.selected[kind];
+  if (!id) {
+    detail.innerHTML = '<div class="detail-empty">Click a row to view details.</div>';
+    return;
+  }
+  const item = kindState.data.find(x => x.id === id);
+  if (!item) {
+    kindState.selected[kind] = null;
+    detail.innerHTML = '<div class="detail-empty">Item no longer available — pick another.</div>';
+    return;
+  }
+  if (kind === 'mail') detail.innerHTML = renderMailDetail(item);
+  else if (kind === 'hook') detail.innerHTML = renderHookDetail(item);
+  else detail.innerHTML = renderRuleDetail(item);
+  bindActionButtons(detail);
+}
+
+function bindActionButtons(scope) {
+  (scope || document).querySelectorAll('[data-act]').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const act = btn.dataset.act;
+      const id = btn.dataset.id;
+      if (act === 'del-mail') return deleteOne('mail', id);
+      if (act === 'del-hook') return deleteOne('hook', id);
+      if (act === 'del-rule') return deleteOne('rule', id);
+      if (act === 'edit-rule') return openRuleForm(id);
+      if (act === 'mail-mode') {
+        mailViewMode[id] = btn.dataset.mode;
+        renderDetail();
+      }
+    };
+  });
 }
 
 function render() {
@@ -267,51 +368,38 @@ function render() {
     empty.textContent = isRule
       ? 'No rules yet — click "+ add rule" to define a mock response.'
       : 'no captures yet — send mail to :1025 or POST to :8090';
+    renderDetail();
     return;
   }
   empty.hidden = true;
+
   if (kindState.current === 'mail') {
-    thead.innerHTML = '<tr><th>Time</th><th>From</th><th>To</th><th>Subject</th><th>ID</th><th></th></tr>';
+    thead.innerHTML = '<tr><th>Time</th><th>From</th><th>Subject</th><th></th></tr>';
     tbody.innerHTML = kindState.data.slice().reverse().map(renderMailRow).join('');
   } else if (kindState.current === 'hook') {
-    thead.innerHTML = '<tr><th>Time</th><th>Method</th><th>Path</th><th>Query</th><th>Bytes</th><th>ID</th><th></th></tr>';
+    thead.innerHTML = '<tr><th>Time</th><th>Method</th><th>Path</th><th></th></tr>';
     tbody.innerHTML = kindState.data.slice().reverse().map(renderHookRow).join('');
   } else {
-    thead.innerHTML = '<tr><th>Created</th><th>Method</th><th>Path</th><th>Status</th><th>Delay</th><th>Body</th><th></th></tr>';
+    thead.innerHTML = '<tr><th>Method</th><th>Path</th><th>Status</th><th></th></tr>';
     tbody.innerHTML = kindState.data.slice().reverse().map(renderRuleRow).join('');
   }
+
   document.querySelectorAll('tr.row').forEach(tr => {
     tr.onclick = (e) => {
-      // Skip toggle when clicking an action button.
       if (e.target.closest('.actions')) return;
-      const id = tr.dataset.id;
-      if (kindState.expanded.has(id)) kindState.expanded.delete(id);
-      else kindState.expanded.add(id);
+      kindState.selected[kindState.current] = tr.dataset.id;
       render();
     };
   });
-  document.querySelectorAll('[data-act]').forEach(btn => {
-    btn.onclick = (e) => {
-      e.stopPropagation();
-      const act = btn.dataset.act;
-      const id = btn.dataset.id;
-      if (act === 'del-mail') return deleteOne('mail', id);
-      if (act === 'del-hook') return deleteOne('hook', id);
-      if (act === 'del-rule') return deleteOne('rule', id);
-      if (act === 'edit-rule') return openRuleForm(id);
-      if (act === 'mail-mode') {
-        mailViewMode[id] = btn.dataset.mode;
-        render();
-      }
-    };
-  });
+  bindActionButtons($('list-panel'));
+  renderDetail();
 }
 
 async function deleteOne(kind, id) {
   // mail/hook = captured noise, delete silently. Rule = user-defined config, confirm.
   if (kind === 'rule' && !confirm('Delete this rule?')) return;
   await fetch('/' + kind + '/' + id, { method: 'DELETE' });
-  kindState.expanded.delete(id);
+  if (kindState.selected[kind] === id) kindState.selected[kind] = null;
   load();
   refreshCounts();
 }
@@ -342,7 +430,6 @@ async function refreshCounts() {
 
 function switchTab(k) {
   kindState.current = k;
-  kindState.expanded.clear();
   ['mail','hook','rule'].forEach(t => $('tab-'+t).classList.toggle('active', t === k));
   load();
 }
@@ -354,7 +441,7 @@ $('clear').onclick = async () => {
   const label = kindState.current === 'rule' ? 'rules' : kindState.current + ' captures';
   if (!confirm('Clear all ' + label + '?')) return;
   await fetch('/' + kindState.current, { method: 'DELETE' });
-  kindState.expanded.clear();
+  kindState.selected[kindState.current] = null;
   load();
   refreshCounts();
 };

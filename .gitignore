@@ -1,0 +1,11 @@
+# Build artifact
+/mailhook
+
+# Editor cruft
+.DS_Store
+.vscode/
+.idea/
+
+# Local state
+*.log
+*.pid
