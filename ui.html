@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mailhook</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --bg-elev: #161b22;
+  --bg-deep: #010409;
+  --border: #30363d;
+  --border-soft: #21262d;
+  --fg: #e6edf3;
+  --muted: #8b949e;
+  --dim: #6e7681;
+  --accent: #58a6ff;
+  --green: #3fb950;
+  --yellow: #d29922;
+  --red: #f85149;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--fg); }
+code, pre { font-family: var(--mono); font-size: 12px; }
+header { padding: 10px 18px; background: var(--bg-elev); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+h1 { font-size: 14px; font-weight: 600; color: var(--accent); letter-spacing: 0.3px; }
+.tabs { display: flex; gap: 4px; }
+.tabs button { background: none; border: none; color: var(--muted); padding: 5px 12px; cursor: pointer; font: inherit; border-radius: 5px; }
+.tabs button.active { background: var(--border-soft); color: var(--fg); }
+.tabs button:hover:not(.active) { color: var(--fg); }
+.count { color: var(--accent); margin-left: 4px; font-size: 11px; }
+.controls { margin-left: auto; display: flex; gap: 8px; align-items: center; color: var(--muted); }
+.controls button { background: var(--border-soft); border: 1px solid var(--border); color: var(--fg); padding: 4px 10px; border-radius: 5px; font: inherit; cursor: pointer; }
+.controls button:hover { background: var(--border); }
+.controls label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+.controls input[type=checkbox] { accent-color: var(--green); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+.dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 7px 14px; text-align: left; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
+th { background: var(--bg-elev); color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+tr.row { cursor: pointer; }
+tr.row:hover { background: var(--bg-elev); }
+tr.row.expanded { background: var(--bg-elev); }
+tr.detail td { padding: 0; background: var(--bg); }
+tr.detail pre { padding: 14px 24px; color: #c9d1d9; overflow-x: auto; white-space: pre-wrap; word-break: break-word; max-height: 480px; overflow-y: auto; }
+tr.detail .section { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 24px 2px; display: flex; align-items: center; gap: 8px; }
+tr.detail .section button { background: var(--border-soft); border: 1px solid var(--border); color: var(--muted); padding: 1px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; text-transform: none; letter-spacing: 0; font-family: inherit; }
+tr.detail .section button:hover { color: var(--fg); }
+tr.detail .section button.active { color: var(--accent); border-color: var(--accent); }
+.mail-iframe { width: calc(100% - 48px); margin: 4px 24px; min-height: 200px; max-height: 500px; border: 1px solid var(--border); border-radius: 4px; background: white; }
+.empty { padding: 60px 20px; text-align: center; color: var(--dim); }
+.method { display: inline-block; padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; font-family: var(--mono); }
+.method.GET { background: rgba(31,111,235,0.2); color: var(--accent); }
+.method.POST { background: rgba(35,134,54,0.2); color: var(--green); }
+.method.PUT { background: rgba(158,106,3,0.25); color: var(--yellow); }
+.method.PATCH { background: rgba(158,106,3,0.25); color: var(--yellow); }
+.method.DELETE { background: rgba(248,81,73,0.2); color: var(--red); }
+.method.ANY { background: rgba(110,118,129,0.25); color: var(--muted); }
+code.id { color: var(--dim); font-size: 11px; }
+.subject { color: var(--fg); }
+footer { padding: 8px 18px; color: var(--dim); font-size: 11px; border-top: 1px solid var(--border-soft); }
+.btn-danger { background: rgba(248,81,73,0.15) !important; border-color: rgba(248,81,73,0.3) !important; color: var(--red) !important; }
+.btn-primary { background: rgba(31,111,235,0.2) !important; border-color: rgba(31,111,235,0.4) !important; color: var(--accent) !important; }
+.actions { display: flex; gap: 6px; }
+.actions button { background: none; border: 1px solid var(--border); color: var(--muted); padding: 2px 8px; border-radius: 4px; font: inherit; cursor: pointer; font-size: 11px; }
+.actions button:hover { color: var(--fg); background: var(--border-soft); }
+.actions button.delete:hover { color: var(--red); border-color: var(--red); }
+
+/* Rule form */
+#rule-form { display: none; padding: 16px 18px; background: var(--bg-elev); border-bottom: 1px solid var(--border); }
+#rule-form.open { display: block; }
+#rule-form h2 { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+#rule-form .grid { display: grid; grid-template-columns: 120px 1fr 100px 100px; gap: 8px; margin-bottom: 8px; }
+#rule-form label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.3px; }
+#rule-form input, #rule-form select, #rule-form textarea {
+  width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+  color: var(--fg); padding: 5px 8px; font: 12px var(--mono); box-sizing: border-box;
+}
+#rule-form input:focus, #rule-form select:focus, #rule-form textarea:focus { outline: none; border-color: var(--accent); }
+#rule-form textarea { min-height: 60px; resize: vertical; }
+#rule-form .row { margin-bottom: 8px; }
+#rule-form .row.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#rule-form .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+#rule-form .form-actions button { padding: 5px 14px; }
+.hint { color: var(--dim); font-size: 11px; margin-top: 3px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>mailhook</h1>
+  <div class="tabs">
+    <button id="tab-mail" class="active">Mail<span class="count" id="cnt-mail">0</span></button>
+    <button id="tab-hook">Hooks<span class="count" id="cnt-hook">0</span></button>
+    <button id="tab-rule">Rules<span class="count" id="cnt-rule">0</span></button>
+  </div>
+  <div class="controls">
+    <label id="livewrap"><span class="dot" id="livedot"></span> <input type="checkbox" id="auto" checked> live</label>
+    <button id="add-rule" class="btn-primary" hidden>+ add rule</button>
+    <button id="refresh">refresh</button>
+    <button id="clear">clear</button>
+  </div>
+</header>
+
+<div id="rule-form">
+  <h2 id="rule-form-title">New rule</h2>
+  <div class="grid">
+    <div>
+      <label>Method</label>
+      <select id="rf-method">
+        <option value="*">* (any)</option>
+        <option value="GET">GET</option>
+        <option value="POST" selected>POST</option>
+        <option value="PUT">PUT</option>
+        <option value="PATCH">PATCH</option>
+        <option value="DELETE">DELETE</option>
+        <option value="HEAD">HEAD</option>
+        <option value="OPTIONS">OPTIONS</option>
+      </select>
+    </div>
+    <div>
+      <label>Path</label>
+      <input id="rf-path" type="text" placeholder="/sms/send  ·  /api/*  ·  *">
+    </div>
+    <div>
+      <label>Status</label>
+      <input id="rf-status" type="number" value="200" min="100" max="599">
+    </div>
+    <div>
+      <label>Delay (ms)</label>
+      <input id="rf-delay" type="number" value="0" min="0">
+    </div>
+  </div>
+  <div class="row">
+    <label>Response headers (one per line, <code>Key: Value</code>)</label>
+    <textarea id="rf-headers" placeholder="Content-Type: application/json&#10;X-Provider: mailhook"></textarea>
+  </div>
+  <div class="row">
+    <label>Response body</label>
+    <textarea id="rf-body" placeholder='{"messageId":"abc","queued":true}'></textarea>
+    <div class="hint">JSON-looking bodies auto-get <code>Content-Type: application/json</code> unless you set one above.</div>
+  </div>
+  <div class="form-actions">
+    <button id="rf-cancel">cancel</button>
+    <button id="rf-save" class="btn-primary">save</button>
+  </div>
+</div>
+
+<main>
+  <table id="table">
+    <thead id="thead"></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div class="empty" id="empty" hidden>no captures yet — send mail to <code>:1025</code> or POST to <code>:8090</code></div>
+</main>
+<footer id="footer">SMTP :1025 · HOOK :8090 · API :8091</footer>
+
+<script>
+const kindState = { current: 'mail', data: [], expanded: new Set() };
+const mailViewMode = {};   // id → 'html' | 'text' | 'raw'  (default = best available)
+let editingRuleId = null;  // null = create, non-null = update
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function renderMailRow(m) {
+  const t = new Date(m.time).toLocaleTimeString();
+  const expanded = kindState.expanded.has(m.id);
+  let row = `<tr class="row${expanded?' expanded':''}" data-id="${m.id}">`
+    + `<td>${t}</td>`
+    + `<td>${esc(m.from)}</td>`
+    + `<td>${esc((m.to||[]).join(', '))}</td>`
+    + `<td class="subject">${esc(m.subject||'(no subject)')}</td>`
+    + `<td><code class="id">${m.id}</code></td>`
+    + `<td class="actions"><button class="delete" data-act="del-mail" data-id="${m.id}">delete</button></td>`
+    + `</tr>`;
+  if (expanded) {
+    const headerLines = Object.entries(m.headers||{}).map(([k,v]) => `${k}: ${v}`).join('\n');
+    const hasHTML = !!m.html;
+    const hasText = !!m.text;
+    // Default view: rendered HTML if available; else text; else raw.
+    const mode = mailViewMode[m.id] || (hasHTML ? 'html' : (hasText ? 'text' : 'raw'));
+
+    const tabs = [];
+    if (hasHTML) tabs.push(`<button data-act="mail-mode" data-id="${m.id}" data-mode="html"${mode==='html'?' class="active"':''}>rendered</button>`);
+    if (hasText) tabs.push(`<button data-act="mail-mode" data-id="${m.id}" data-mode="text"${mode==='text'?' class="active"':''}>text</button>`);
+    tabs.push(`<button data-act="mail-mode" data-id="${m.id}" data-mode="raw"${mode==='raw'?' class="active"':''}>raw</button>`);
+
+    let bodyBlock = '';
+    if (mode === 'html' && hasHTML) {
+      bodyBlock = `<iframe class="mail-iframe" sandbox="" srcdoc="${esc(m.html)}"></iframe>`;
+    } else if (mode === 'text' && hasText) {
+      bodyBlock = `<pre>${esc(m.text)}</pre>`;
+    } else {
+      bodyBlock = `<pre>${esc(m.raw || m.body || '(empty)')}</pre>`;
+    }
+
+    row += `<tr class="detail"><td colspan="6">`
+      + `<div class="section">Headers</div><pre>${esc(headerLines)}</pre>`
+      + `<div class="section">Body ${tabs.join('')}</div>${bodyBlock}`
+      + `</td></tr>`;
+  }
+  return row;
+}
+
+function renderHookRow(h) {
+  const t = new Date(h.time).toLocaleTimeString();
+  const expanded = kindState.expanded.has(h.id);
+  const method = (h.method||'').toUpperCase();
+  let row = `<tr class="row${expanded?' expanded':''}" data-id="${h.id}">`
+    + `<td>${t}</td>`
+    + `<td><span class="method ${method}">${method}</span></td>`
+    + `<td>${esc(h.path)}</td>`
+    + `<td>${esc(h.query||'')}</td>`
+    + `<td>${(h.body||'').length}</td>`
+    + `<td><code class="id">${h.id}</code></td>`
+    + `<td class="actions"><button class="delete" data-act="del-hook" data-id="${h.id}">delete</button></td>`
+    + `</tr>`;
+  if (expanded) {
+    const headerLines = Object.entries(h.headers||{}).map(([k,v]) => `${k}: ${(v||[]).join(', ')}`).join('\n');
+    row += `<tr class="detail"><td colspan="7">`
+      + `<div class="section">From</div><pre>${esc(h.remote||'')}</pre>`
+      + `<div class="section">Headers</div><pre>${esc(headerLines)}</pre>`
+      + `<div class="section">Body</div><pre>${esc(h.body||'(empty)')}</pre>`
+      + `</td></tr>`;
+  }
+  return row;
+}
+
+function renderRuleRow(r) {
+  const method = (r.method && r.method !== '*') ? r.method.toUpperCase() : 'ANY';
+  const created = new Date(r.created).toLocaleTimeString();
+  const headerLines = Object.entries(r.headers||{}).map(([k,v]) => `${k}: ${v}`).join('\n');
+  const expanded = kindState.expanded.has(r.id);
+  let row = `<tr class="row${expanded?' expanded':''}" data-id="${r.id}">`
+    + `<td>${created}</td>`
+    + `<td><span class="method ${method === 'ANY' ? 'ANY' : method}">${method}</span></td>`
+    + `<td>${esc(r.path||'*')}</td>`
+    + `<td>${r.status||200}</td>`
+    + `<td>${r.delay_ms||0}ms</td>`
+    + `<td>${esc((r.body||'').slice(0,60))}${(r.body||'').length>60?'…':''}</td>`
+    + `<td class="actions">`
+    +   `<button data-act="edit-rule" data-id="${r.id}">edit</button>`
+    +   `<button class="delete" data-act="del-rule" data-id="${r.id}">delete</button>`
+    + `</td>`
+    + `</tr>`;
+  if (expanded) {
+    row += `<tr class="detail"><td colspan="7">`
+      + `<div class="section">Headers</div><pre>${esc(headerLines||'(none)')}</pre>`
+      + `<div class="section">Body</div><pre>${esc(r.body||'(empty)')}</pre>`
+      + `</td></tr>`;
+  }
+  return row;
+}
+
+function render() {
+  const thead = $('thead'), tbody = $('tbody'), empty = $('empty');
+  const isRule = kindState.current === 'rule';
+  $('add-rule').hidden = !isRule;
+  $('livewrap').style.display = isRule ? 'none' : '';
+  if (!isRule) closeRuleForm();
+
+  if (!kindState.data.length) {
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+    empty.hidden = false;
+    empty.textContent = isRule
+      ? 'No rules yet — click "+ add rule" to define a mock response.'
+      : 'no captures yet — send mail to :1025 or POST to :8090';
+    return;
+  }
+  empty.hidden = true;
+  if (kindState.current === 'mail') {
+    thead.innerHTML = '<tr><th>Time</th><th>From</th><th>To</th><th>Subject</th><th>ID</th><th></th></tr>';
+    tbody.innerHTML = kindState.data.slice().reverse().map(renderMailRow).join('');
+  } else if (kindState.current === 'hook') {
+    thead.innerHTML = '<tr><th>Time</th><th>Method</th><th>Path</th><th>Query</th><th>Bytes</th><th>ID</th><th></th></tr>';
+    tbody.innerHTML = kindState.data.slice().reverse().map(renderHookRow).join('');
+  } else {
+    thead.innerHTML = '<tr><th>Created</th><th>Method</th><th>Path</th><th>Status</th><th>Delay</th><th>Body</th><th></th></tr>';
+    tbody.innerHTML = kindState.data.slice().reverse().map(renderRuleRow).join('');
+  }
+  document.querySelectorAll('tr.row').forEach(tr => {
+    tr.onclick = (e) => {
+      // Skip toggle when clicking an action button.
+      if (e.target.closest('.actions')) return;
+      const id = tr.dataset.id;
+      if (kindState.expanded.has(id)) kindState.expanded.delete(id);
+      else kindState.expanded.add(id);
+      render();
+    };
+  });
+  document.querySelectorAll('[data-act]').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const act = btn.dataset.act;
+      const id = btn.dataset.id;
+      if (act === 'del-mail') return deleteOne('mail', id);
+      if (act === 'del-hook') return deleteOne('hook', id);
+      if (act === 'del-rule') return deleteOne('rule', id);
+      if (act === 'edit-rule') return openRuleForm(id);
+      if (act === 'mail-mode') {
+        mailViewMode[id] = btn.dataset.mode;
+        render();
+      }
+    };
+  });
+}
+
+async function deleteOne(kind, id) {
+  // mail/hook = captured noise, delete silently. Rule = user-defined config, confirm.
+  if (kind === 'rule' && !confirm('Delete this rule?')) return;
+  await fetch('/' + kind + '/' + id, { method: 'DELETE' });
+  kindState.expanded.delete(id);
+  load();
+  refreshCounts();
+}
+
+async function load() {
+  try {
+    const res = await fetch('/' + kindState.current);
+    kindState.data = (await res.json()) || [];
+    $('cnt-' + kindState.current).textContent = kindState.data.length;
+    render();
+  } catch (e) {
+    console.error('load failed', e);
+  }
+}
+
+async function refreshCounts() {
+  try {
+    const [m, h, r] = await Promise.all([
+      fetch('/mail').then(r => r.json()),
+      fetch('/hook').then(r => r.json()),
+      fetch('/rule').then(r => r.json())
+    ]);
+    $('cnt-mail').textContent = (m||[]).length;
+    $('cnt-hook').textContent = (h||[]).length;
+    $('cnt-rule').textContent = (r||[]).length;
+  } catch (e) {}
+}
+
+function switchTab(k) {
+  kindState.current = k;
+  kindState.expanded.clear();
+  ['mail','hook','rule'].forEach(t => $('tab-'+t).classList.toggle('active', t === k));
+  load();
+}
+$('tab-mail').onclick = () => switchTab('mail');
+$('tab-hook').onclick = () => switchTab('hook');
+$('tab-rule').onclick = () => switchTab('rule');
+$('refresh').onclick = load;
+$('clear').onclick = async () => {
+  const label = kindState.current === 'rule' ? 'rules' : kindState.current + ' captures';
+  if (!confirm('Clear all ' + label + '?')) return;
+  await fetch('/' + kindState.current, { method: 'DELETE' });
+  kindState.expanded.clear();
+  load();
+  refreshCounts();
+};
+
+// ----- Rule form -----
+function openRuleForm(id) {
+  editingRuleId = id || null;
+  $('rule-form-title').textContent = id ? 'Edit rule' : 'New rule';
+  if (id) {
+    const r = kindState.data.find(x => x.id === id);
+    if (!r) return;
+    $('rf-method').value = (r.method && r.method !== '') ? r.method : '*';
+    $('rf-path').value = r.path || '';
+    $('rf-status').value = r.status || 200;
+    $('rf-delay').value = r.delay_ms || 0;
+    $('rf-headers').value = Object.entries(r.headers||{}).map(([k,v]) => `${k}: ${v}`).join('\n');
+    $('rf-body').value = r.body || '';
+  } else {
+    $('rf-method').value = 'POST';
+    $('rf-path').value = '';
+    $('rf-status').value = 200;
+    $('rf-delay').value = 0;
+    $('rf-headers').value = '';
+    $('rf-body').value = '';
+  }
+  $('rule-form').classList.add('open');
+  setTimeout(() => $('rf-path').focus(), 30);
+}
+function closeRuleForm() {
+  $('rule-form').classList.remove('open');
+  editingRuleId = null;
+}
+$('add-rule').onclick = () => openRuleForm(null);
+$('rf-cancel').onclick = closeRuleForm;
+$('rf-save').onclick = async () => {
+  const path = $('rf-path').value.trim();
+  if (!path) { alert('Path is required. Use "*" for any.'); return; }
+  const headers = {};
+  for (const line of $('rf-headers').value.split('\n')) {
+    const idx = line.indexOf(':');
+    if (idx < 0) continue;
+    const k = line.slice(0, idx).trim();
+    const v = line.slice(idx+1).trim();
+    if (k) headers[k] = v;
+  }
+  const rule = {
+    method: $('rf-method').value,
+    path,
+    status: parseInt($('rf-status').value, 10) || 200,
+    delay_ms: parseInt($('rf-delay').value, 10) || 0,
+    headers,
+    body: $('rf-body').value
+  };
+  const opts = {
+    method: editingRuleId ? 'PUT' : 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(rule)
+  };
+  const url = editingRuleId ? '/rule/' + editingRuleId : '/rule';
+  const res = await fetch(url, opts);
+  if (!res.ok) {
+    const t = await res.text();
+    alert('Save failed: ' + res.status + ' ' + t);
+    return;
+  }
+  closeRuleForm();
+  load();
+  refreshCounts();
+};
+
+let liveCtrl = null;
+async function startLive() {
+  stopLive();
+  liveCtrl = new AbortController();
+  $('livedot').classList.add('live');
+  try {
+    const res = await fetch('/tail?kind=all', { signal: liveCtrl.signal });
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, nl);
+        buf = buf.slice(nl + 1);
+        if (!line.trim()) continue;
+        try {
+          const ev = JSON.parse(line);
+          if (ev.kind === kindState.current) load();
+          else refreshCounts();
+        } catch {}
+      }
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') console.error('tail closed', e);
+  } finally {
+    $('livedot').classList.remove('live');
+    // Auto-reconnect if user still wants live mode.
+    if ($('auto').checked) setTimeout(startLive, 1000);
+  }
+}
+function stopLive() {
+  if (liveCtrl) { liveCtrl.abort(); liveCtrl = null; }
+  $('livedot').classList.remove('live');
+}
+$('auto').onchange = e => e.target.checked ? startLive() : stopLive();
+
+load();
+refreshCounts();
+startLive();
+</script>
+</body>
+</html>
