@@ -11,6 +11,8 @@ for any app that emits SMTP or webhooks.
 - Web UI on `127.0.0.1:8091` and a JSON API + live NDJSON tail.
 - ~6 MB binary, ~12 MB RSS, ~0% idle CPU.
 
+![mailhook web UI](docs/assets/mailhook.png)
+
 ## Install
 
 Requires **Go 1.22+** (`brew install go` on macOS).
