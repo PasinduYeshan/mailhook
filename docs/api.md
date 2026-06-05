@@ -2,7 +2,7 @@
 
 Base URL: `http://127.0.0.1:8091` (override with `MAILHOOK_API`).
 
-The webhook receiver (`:8090`) and SMTP receiver (`:1025`) are write-only
+The webhook receiver (`:7790`) and SMTP receiver (`:1025`) are write-only
 endpoints — apps under test post / send to them. Everything else (read,
 delete, mock-rule CRUD, live tail, Web UI) lives on the API port `:8091`.
 

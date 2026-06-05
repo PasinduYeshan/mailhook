@@ -1,6 +1,6 @@
 ---
 name: mailhook
-description: Capture / inspect outbound email or HTTP webhook calls from a local app under test (WSO2 IS OTP, password reset, SMS publisher, custom HTTP notification). Triggers on "catch the OTP email", "intercept the SMS webhook", "what email did IS send", "mock the SMS endpoint", "wait for a webhook on :8090".
+description: Capture / inspect outbound email or HTTP webhook calls from a local app under test (WSO2 IS OTP, password reset, SMS publisher, custom HTTP notification). Triggers on "catch the OTP email", "intercept the SMS webhook", "what email did IS send", "mock the SMS endpoint", "wait for a webhook on :7790".
 ---
 
 ## When to use
@@ -23,7 +23,7 @@ mailhook stop
 
 Endpoints:
 - SMTP   `127.0.0.1:1025`
-- Hook   `127.0.0.1:8090` (any HTTP method)
+- Hook   `127.0.0.1:7790` (any HTTP method)
 - API+UI `http://127.0.0.1:8091/`
 
 ## Core commands

@@ -33,7 +33,7 @@ Or open `http://127.0.0.1:8091/` and click **Mail**.
 ```toml
 [output_adapter.sms]
 provider = "http"
-provider_url = "http://127.0.0.1:8090/sms/send"
+provider_url = "http://127.0.0.1:7790/sms/send"
 ```
 
 Now every SMS publisher call ends up captured:
@@ -95,6 +95,6 @@ since there's no auth:
 ```bash
 mailhook start \
   --smtp 0.0.0.0:1025 \
-  --hook 0.0.0.0:8090 \
+  --hook 0.0.0.0:7790 \
   --api  127.0.0.1:8091   # keep API local
 ```

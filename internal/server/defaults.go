@@ -5,7 +5,7 @@ package server
 
 const (
 	DefaultSMTPAddr = "127.0.0.1:1025"
-	DefaultHookAddr = "127.0.0.1:8090"
+	DefaultHookAddr = "127.0.0.1:7790"
 	DefaultAPIAddr  = "127.0.0.1:8091"
 	DefaultCap      = 500
 )

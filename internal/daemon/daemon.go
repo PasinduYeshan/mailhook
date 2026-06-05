@@ -115,7 +115,7 @@ func Start(args []string) error {
 
 	fmt.Printf("mailhook started (pid %d)\n", pid)
 	fmt.Println("  SMTP  127.0.0.1:1025")
-	fmt.Println("  HOOK  127.0.0.1:8090  (any HTTP method)")
+	fmt.Println("  HOOK  127.0.0.1:7790  (any HTTP method)")
 	fmt.Println("  API   127.0.0.1:8091")
 	fmt.Println("  UI    http://127.0.0.1:8091/")
 	fmt.Println("  log  ", LogFile())

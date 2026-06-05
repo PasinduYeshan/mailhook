@@ -171,13 +171,13 @@ footer { padding: 8px 18px; color: var(--dim); font-size: 11px; border-top: 1px 
       <thead id="thead"></thead>
       <tbody id="tbody"></tbody>
     </table>
-    <div class="empty" id="empty" hidden>no captures yet — send mail to <code>:1025</code> or POST to <code>:8090</code></div>
+    <div class="empty" id="empty" hidden>no captures yet — send mail to <code>:1025</code> or POST to <code>:7790</code></div>
   </div>
   <div class="detail-panel" id="detail-panel">
     <div class="detail-empty">Click a row to view details.</div>
   </div>
 </main>
-<footer id="footer">SMTP :1025 · HOOK :8090 · API :8091</footer>
+<footer id="footer">SMTP :1025 · HOOK :7790 · API :8091</footer>
 
 <script>
 const kindState = {
@@ -367,7 +367,7 @@ function render() {
     empty.hidden = false;
     empty.textContent = isRule
       ? 'No rules yet — click "+ add rule" to define a mock response.'
-      : 'no captures yet — send mail to :1025 or POST to :8090';
+      : 'no captures yet — send mail to :1025 or POST to :7790';
     renderDetail();
     return;
   }

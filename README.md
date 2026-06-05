@@ -6,7 +6,7 @@ reset) or POST to a notification endpoint (SMS, custom HTTP), but useful
 for any app that emits SMTP or webhooks.
 
 - Catches outbound SMTP on `127.0.0.1:1025` (no auth, no TLS, local-only).
-- Catches any HTTP method on `127.0.0.1:8090` — captures stay in memory.
+- Catches any HTTP method on `127.0.0.1:7790` — captures stay in memory.
 - Optional per-`method`+`path` mock responses (Beeceptor-style).
 - Web UI on `127.0.0.1:8091` and a JSON API + live NDJSON tail.
 - ~6 MB binary, ~12 MB RSS, ~0% idle CPU.
@@ -67,7 +67,7 @@ swaks --server localhost:1025 \
       --header "Subject: OTP 482913" --body "Code: 482913"
 
 # Or a webhook.
-curl -X POST http://localhost:8090/sms/send -d '{"text":"hi"}'
+curl -X POST http://localhost:7790/sms/send -d '{"text":"hi"}'
 
 # Inspect from CLI.
 mailhook mail list

@@ -22,7 +22,7 @@ mailhook serve    [flags]         run in foreground (called by `start`)
 | Flag         | Default              | Description                                  |
 | ------------ | -------------------- | -------------------------------------------- |
 | `--smtp`     | `127.0.0.1:1025`     | SMTP listen address                          |
-| `--hook`     | `127.0.0.1:8090`     | Webhook receiver listen address              |
+| `--hook`     | `127.0.0.1:7790`     | Webhook receiver listen address              |
 | `--api`      | `127.0.0.1:8091`     | Query API + Web UI listen address            |
 | `--cap`      | `500`                | Ring-buffer capacity per stream (mail/hook)  |
 

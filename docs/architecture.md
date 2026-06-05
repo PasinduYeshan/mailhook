@@ -8,7 +8,7 @@ mock-rule engine. Stdlib only.
 ```
 mailhook (one process)
   ├─ SMTP listener        :1025   handleSMTP → store.addMail
-  ├─ Hook listener        :8090   net/http handler → store.addHook
+  ├─ Hook listener        :7790   net/http handler → store.addHook
   │                                          ↘ matchRule → custom response
   └─ Query API + Web UI   :8091   net/http handler
                                   ├─ /mail, /hook, /rule  (REST)
