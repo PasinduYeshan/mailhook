@@ -1,9 +1,7 @@
 # mailhook
 
-Local SMTP catcher + HTTP webhook inspector. One Go binary, zero external
-deps. Built for testing WSO2 IS pack flows that send mail (OTP, password
-reset) or POST to a notification endpoint (SMS, custom HTTP), but useful
-for any app that emits SMTP or webhooks.
+Local SMTP catcher + HTTP webhook inspector. Single static binary, zero external deps. Built for testing WSO2 IS pack flows that send mail (OTP,
+password reset) or POST to a notification endpoint (SMS, custom HTTP), but useful for any app that emits SMTP or webhooks.
 
 - Catches outbound SMTP on `127.0.0.1:1025` (no auth, no TLS, local-only).
 - Catches any HTTP method on `127.0.0.1:7790` — captures stay in memory.
@@ -15,66 +13,64 @@ for any app that emits SMTP or webhooks.
 
 ## Install
 
-Requires **Go 1.22+** (`brew install go` on macOS).
-
-### One-shot
-
 ```bash
-go install github.com/PasinduYeshan/mailhook/cmd/mailhook@latest
-```
-
-Lands in `$(go env GOPATH)/bin` (usually `~/go/bin`). Add it to `PATH` if
-not already:
-
-```bash
-export PATH="$(go env GOPATH)/bin:$PATH"
+curl -fsSL https://raw.githubusercontent.com/PasinduYeshan/mailhook/main/install.sh | sh
 ```
 
 Verify:
 
 ```bash
-mailhook help
+mailhook version
 ```
 
-### From source
-
-```bash
-git clone https://github.com/PasinduYeshan/mailhook
-cd mailhook
-make install              # installs to $HOME/.local/bin
-```
-
-## Uninstall
-
-```bash
-mailhook stop                                  # stop daemon if running
-rm "$(go env GOPATH)/bin/mailhook"             # if installed via `go install`
-# OR (if installed from source):
-cd /path/to/mailhook && make uninstall
-
-rm -rf "$HOME/.local/var/mailhook"             # optional: remove logs + pidfile
-```
+> Building from source? See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Quick start
 
+01. Start the background daemon.
+
 ```bash
 mailhook start                     # background daemon
-open http://127.0.0.1:8091/        # web UI
+```
 
-# Send mail to the catcher.
+Then open the web UI at port 8091.
+
+```bash
+open http://127.0.0.1:8091/        # web UI
+```
+
+02. Send mail to the catcher.
+
+```bash
 swaks --server localhost:1025 \
       --from is@test.local --to user@example.com \
       --header "Subject: OTP 482913" --body "Code: 482913"
+```
 
-# Or a webhook.
+or a webhook.
+
+```bash
 curl -X POST http://localhost:7790/sms/send -d '{"text":"hi"}'
+```
 
-# Inspect from CLI.
+03. Inspect from CLI.
+
+```bash
 mailhook mail list
-mailhook hook list
-mailhook tail
+```
 
-mailhook stop                      # when done
+```bash
+mailhook hook list
+```
+
+```bash
+mailhook tail
+```
+
+04. Stop the daemon when done.
+
+```bash
+mailhook stop
 ```
 
 ## Other commands
@@ -104,7 +100,8 @@ Full reference: see [`docs/cli.md`](docs/cli.md).
 | WSO2 IS pack     | [`docs/integration.md`](docs/integration.md)    |
 | Internals        | [`docs/architecture.md`](docs/architecture.md)  |
 | Agent skill      | [`SKILL.md`](SKILL.md)                          |
+| Contributing     | [`CONTRIBUTING.md`](CONTRIBUTING.md)            |
 
 ## License
 
-MIT.
+MIT

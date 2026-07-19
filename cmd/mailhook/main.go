@@ -10,6 +10,7 @@ import (
 
 	"github.com/PasinduYeshan/mailhook/internal/cli"
 	"github.com/PasinduYeshan/mailhook/internal/daemon"
+	"github.com/PasinduYeshan/mailhook/internal/version"
 )
 
 func main() {
@@ -47,6 +48,9 @@ func main() {
 	case "-h", "--help", "help":
 		usage()
 		return
+	case "-v", "--version", "version":
+		fmt.Println("mailhook " + version.Version)
+		return
 	default:
 		usage()
 		os.Exit(2)
@@ -75,6 +79,7 @@ Inspection (talks to a running daemon over HTTP):
                        [-H 'K: V']  [-d MS]  [-f FILE]
   mailhook rule  list  [-j] | show <id> | update <id> | delete <id> | clear
   mailhook tail        [-t mail|hook|all] [-j]
+  mailhook version                  print version
 
 Docs:
   README.md          install + quick start
