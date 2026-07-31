@@ -13,6 +13,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/PasinduYeshan/mailhook/internal/server"
 )
 
 func stateDir() string {
@@ -114,12 +116,16 @@ func Start(args []string) error {
 	}
 
 	fmt.Printf("mailhook started (pid %d)\n", pid)
-	fmt.Println("  SMTP  127.0.0.1:1025")
-	fmt.Println("  HOOK  127.0.0.1:7790  (any HTTP method)")
-	fmt.Println("  API   127.0.0.1:8091")
-	fmt.Println("  UI    http://127.0.0.1:8091/")
+	printPorts()
 	fmt.Println("  log  ", LogFile())
 	return nil
+}
+
+func printPorts() {
+	fmt.Println("  SMTP ", server.DefaultSMTPAddr)
+	fmt.Println("  HOOK ", server.DefaultHookAddr, " (any HTTP method)")
+	fmt.Println("  API  ", server.DefaultAPIAddr)
+	fmt.Println("  UI    http://" + server.DefaultAPIAddr + "/")
 }
 
 func Stop(args []string) error {
@@ -167,6 +173,7 @@ func Status(args []string) error {
 			fmt.Printf("  RSS %.1f MB · CPU %s%%\n", rss/1024, fields[1])
 		}
 	}
+	printPorts()
 	fmt.Println("  log ", LogFile())
 	return nil
 }

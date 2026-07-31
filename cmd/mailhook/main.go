@@ -60,6 +60,12 @@ func main() {
 func usage() {
 	fmt.Fprintln(os.Stderr, `mailhook — local SMTP catcher + HTTP webhook inspector
 
+Default ports:
+  SMTP  127.0.0.1:1025
+  HOOK  127.0.0.1:7790  (any HTTP method)
+  API   127.0.0.1:8091
+  UI    http://127.0.0.1:8091/
+
 Daemon lifecycle:
   mailhook start   [serve flags]    start in background
   mailhook stop                     stop background daemon
