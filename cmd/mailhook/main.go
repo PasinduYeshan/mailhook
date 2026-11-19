@@ -61,22 +61,27 @@ func usage() {
 	fmt.Fprintln(os.Stderr, `mailhook — local SMTP catcher + HTTP webhook inspector
 
 Default ports:
-  SMTP  127.0.0.1:1025
+  SMTP  127.0.0.1:7725
   HOOK  127.0.0.1:7790  (any HTTP method)
-  API   127.0.0.1:8091
-  UI    http://127.0.0.1:8091/
+  API   127.0.0.1:7791
+  UI    http://127.0.0.1:7791/
 
 Daemon lifecycle:
   mailhook start   [serve flags]    start in background
-  mailhook stop                     stop background daemon
-  mailhook restart [serve flags]    stop then start
-  mailhook status                   show pid, RSS, CPU
+  mailhook stop    [--all]          stop background daemon (--all: every instance)
+  mailhook restart [serve flags]    stop then start (keeps current ports)
+  mailhook status                   show pid, RSS, CPU, ports
   mailhook logs                     tail -f the daemon log
   mailhook serve   [flags]          run in foreground
 
+Serve flags (address or bare port, e.g. --smtp 2525):
+  --smtp ADDR  --hook ADDR  --api ADDR  --cap N
+
 Inspection (talks to a running daemon over HTTP):
   mailhook mail  list  [-j] | show <id> | delete <id> | clear
-  mailhook hook  list  [-j] | show <id> | delete <id> | clear
+  mailhook mail  code  [id]   first OTP-like code (default: newest mail)
+  mailhook mail  links [id]   URLs in the body, one per line
+  mailhook hook  list  [-j] | show <id> | code [id] | links [id] | delete <id> | clear
   mailhook rule  add   [-m METHOD] [-p PATH] [-s STATUS] [-b BODY]
                        [-H 'K: V']  [-d MS]  [-f FILE]
   mailhook rule  list  [-j] | show <id> | update <id> | delete <id> | clear

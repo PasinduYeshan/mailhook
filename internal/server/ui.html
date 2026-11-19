@@ -6,118 +6,229 @@
 <title>mailhook</title>
 <style>
 :root {
-  --bg: #0d1117;
-  --bg-elev: #161b22;
-  --bg-deep: #010409;
-  --border: #30363d;
-  --border-soft: #21262d;
-  --fg: #e6edf3;
-  --muted: #8b949e;
-  --dim: #6e7681;
-  --accent: #58a6ff;
-  --green: #3fb950;
-  --yellow: #d29922;
-  --red: #f85149;
+  --bg: #0d1117; --bg-elev: #161b22; --bg-deep: #010409; --bg-hover: #1c2129;
+  --border: #30363d; --border-soft: #21262d;
+  --fg: #e6edf3; --fg-soft: #c9d1d9; --muted: #8b949e; --dim: #6e7681;
+  --accent: #58a6ff; --accent-bg: rgba(56,139,253,0.14); --sel: rgba(56,139,253,0.16);
+  --green: #3fb950; --green-bg: rgba(46,160,67,0.18);
+  --yellow: #d29922; --yellow-bg: rgba(187,128,9,0.2);
+  --red: #f85149; --red-bg: rgba(248,81,73,0.15);
+  --purple: #bc8cff;
+  --code-fg: #e3b341; --code-bg: rgba(227,179,65,0.12); --code-border: rgba(227,179,65,0.35);
+  --bubble: #1f6feb; --bubble-fg: #fff;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #ffffff; --bg-elev: #f6f8fa; --bg-deep: #f6f8fa; --bg-hover: #f3f4f6;
+    --border: #d0d7de; --border-soft: #e5e9ee;
+    --fg: #1f2328; --fg-soft: #24292f; --muted: #59636e; --dim: #818b98;
+    --accent: #0969da; --accent-bg: rgba(9,105,218,0.08); --sel: rgba(9,105,218,0.09);
+    --green: #1a7f37; --green-bg: rgba(31,136,61,0.12);
+    --yellow: #9a6700; --yellow-bg: rgba(154,103,0,0.12);
+    --red: #cf222e; --red-bg: rgba(207,34,46,0.1);
+    --purple: #8250df;
+    --code-fg: #7d4e00; --code-bg: #fff8c5; --code-border: #e6c84f;
+    --bubble: #0969da;
+    color-scheme: light;
+  }
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
-body { font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--fg); display: flex; flex-direction: column; }
-code, pre { font-family: var(--mono); font-size: 12px; }
-header { padding: 10px 18px; background: var(--bg-elev); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; flex-wrap: wrap; flex-shrink: 0; }
-h1 { font-size: 14px; font-weight: 600; color: var(--accent); letter-spacing: 0.3px; }
-.tabs { display: flex; gap: 4px; }
-.tabs button { background: none; border: none; color: var(--muted); padding: 5px 12px; cursor: pointer; font: inherit; border-radius: 5px; }
-.tabs button.active { background: var(--border-soft); color: var(--fg); }
-.tabs button:hover:not(.active) { color: var(--fg); }
-.count { color: var(--accent); margin-left: 4px; font-size: 11px; }
+body { font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background: var(--bg); color: var(--fg); display: flex; flex-direction: column; }
+code, pre, .mono { font-family: var(--mono); font-size: 14px; }
+a { color: var(--accent); }
+button, .btn { font: inherit; cursor: pointer; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-elev); color: var(--fg); padding: 4px 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+button:hover, .btn:hover { background: var(--bg-hover); border-color: var(--dim); }
+.btn-sm { font-size: 13px; padding: 1px 7px; border-radius: 5px; }
+.btn-danger:hover { color: var(--red); border-color: var(--red); }
+.btn-primary { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+
+header { padding: 10px 18px; background: var(--bg-elev); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; flex-shrink: 0; flex-wrap: wrap; }
+h1 { font-size: 16.5px; font-weight: 700; color: var(--accent); letter-spacing: 0.3px; }
+.tabs { display: flex; gap: 2px; }
+.tabs button { background: none; border: 1px solid transparent; color: var(--muted); padding: 5px 13px; font-weight: 500; }
+.tabs button.active { background: var(--bg); border-color: var(--border); color: var(--fg); }
+.tabs button:hover:not(.active) { color: var(--fg); background: none; }
+.count { color: var(--accent); margin-left: 5px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.count.has-new::after { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-left: 4px; vertical-align: 1px; }
+#search { flex: 1; min-width: 160px; max-width: 420px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--fg); padding: 4px 10px; font: inherit; }
+#search:focus { outline: none; border-color: var(--accent); }
 .controls { margin-left: auto; display: flex; gap: 8px; align-items: center; color: var(--muted); }
-.controls button { background: var(--border-soft); border: 1px solid var(--border); color: var(--fg); padding: 4px 10px; border-radius: 5px; font: inherit; cursor: pointer; }
-.controls button:hover { background: var(--border); }
 .controls label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
 .controls input[type=checkbox] { accent-color: var(--green); }
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
 .dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
 
-main { flex: 1; display: flex; min-height: 0; overflow: hidden; }
-.list-panel { width: 42%; min-width: 320px; max-width: 640px; overflow-y: auto; border-right: 1px solid var(--border); background: var(--bg); }
-.detail-panel { flex: 1; overflow-y: auto; padding: 20px 24px; background: var(--bg); display: flex; flex-direction: column; gap: 4px; }
+main { flex: 1; display: flex; min-height: 0; }
+.list-panel { width: 40%; min-width: 360px; max-width: 640px; overflow-y: auto; border-right: 1px solid var(--border); }
+.detail-panel { flex: 1; overflow-y: auto; min-width: 0; }
+.detail-inner { padding: 18px 24px 28px; display: flex; flex-direction: column; gap: 14px; max-width: 1200px; }
 
-table { width: 100%; border-collapse: collapse; }
-th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
-th { background: var(--bg-elev); color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 1; }
-tr.row { cursor: pointer; }
-tr.row:hover { background: var(--bg-elev); }
-tr.row.selected { background: rgba(31,111,235,0.12); }
-tr.row.selected td { border-bottom-color: var(--accent); }
+.row { position: relative; padding: 8px 14px 9px 22px; border-bottom: 1px solid var(--border-soft); cursor: pointer; display: flex; flex-direction: column; gap: 1px; }
+.row:hover { background: var(--bg-hover); }
+.row.sel { background: var(--sel); box-shadow: inset 3px 0 0 var(--accent); }
+.row.unread::before { content: ''; position: absolute; left: 8px; top: 15px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.row .r1 { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
+.row .who { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.row.unread .who, .row.unread .subj { color: var(--fg); }
+.row .time { color: var(--dim); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.row .subj { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg-soft); }
+.row .snip { color: var(--muted); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .chips { display: flex; gap: 5px; margin-top: 3px; flex-wrap: wrap; }
+.row .chips:empty { display: none; }
+.row .x { position: absolute; right: 10px; bottom: 7px; opacity: 0; padding: 0 6px; font-size: 14px; background: var(--bg); }
+.row:hover .x { opacity: 1; }
+.row .path { font-family: var(--mono); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
 
-.detail-empty { color: var(--dim); padding: 60px 20px; text-align: center; }
-.detail-head { padding-bottom: 12px; border-bottom: 1px solid var(--border-soft); margin-bottom: 6px; }
-.detail-title { font-size: 15px; font-weight: 600; color: var(--fg); }
-.detail-meta { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.6; word-break: break-all; }
-.detail-meta code { font-size: 11px; }
-.detail-pre { padding: 10px 14px; background: var(--bg-deep); border: 1px solid var(--border-soft); border-radius: 5px; color: #c9d1d9; overflow-x: auto; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow-y: auto; }
-.section { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 0 4px; display: flex; align-items: center; gap: 8px; }
-.section button { background: var(--border-soft); border: 1px solid var(--border); color: var(--muted); padding: 2px 9px; border-radius: 3px; cursor: pointer; font-size: 10px; text-transform: none; letter-spacing: 0; font-family: inherit; }
-.section button:hover { color: var(--fg); }
-.section button.active { color: var(--accent); border-color: var(--accent); background: rgba(31,111,235,0.1); }
+.group { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; background: var(--bg-elev); border-bottom: 1px solid var(--border-soft); cursor: pointer; user-select: none; }
+.group:hover { background: var(--bg-hover); }
+.group .tw { color: var(--dim); width: 12px; font-size: 11.5px; }
+.group .gp { font-family: var(--mono); font-size: 14px; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.group .ans { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.group .ans b { font-weight: 600; }
+.group .ans .rule { color: var(--purple); }
+.list-tools { display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-bottom: 1px solid var(--border-soft); color: var(--muted); font-size: 13px; }
+.list-tools label { display: inline-flex; gap: 5px; align-items: center; cursor: pointer; }
+.list-tools .grow { flex: 1; }
+.chip { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; line-height: 16px; padding: 0 6px; border-radius: 10px; border: 1px solid var(--border); color: var(--muted); background: var(--bg); }
+.chip.code { font-family: var(--mono); color: var(--code-fg); background: var(--code-bg); border-color: var(--code-border); cursor: copy; font-weight: 600; }
+.chip.code:hover { filter: brightness(1.15); }
+.chip.warn { color: var(--yellow); background: var(--yellow-bg); border-color: transparent; }
+.chip.err { color: var(--red); background: var(--red-bg); border-color: transparent; }
+.chip.smsc { color: var(--purple); border-color: transparent; background: rgba(188,140,255,0.12); }
 
-.mail-iframe { flex: 1; min-height: 420px; width: 100%; border: 1px solid var(--border); border-radius: 5px; background: white; }
+.method { display: inline-block; padding: 0 6px; border-radius: 4px; font-size: 12.5px; font-weight: 700; font-family: var(--mono); line-height: 17px; background: rgba(110,118,129,0.2); color: var(--muted); }
+.method.GET { background: var(--accent-bg); color: var(--accent); }
+.method.POST { background: var(--green-bg); color: var(--green); }
+.method.PUT, .method.PATCH { background: var(--yellow-bg); color: var(--yellow); }
+.method.DELETE { background: var(--red-bg); color: var(--red); }
 
-.empty { padding: 60px 20px; text-align: center; color: var(--dim); }
-.method { display: inline-block; padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; font-family: var(--mono); }
-.method.GET { background: rgba(31,111,235,0.2); color: var(--accent); }
-.method.POST { background: rgba(35,134,54,0.2); color: var(--green); }
-.method.PUT { background: rgba(158,106,3,0.25); color: var(--yellow); }
-.method.PATCH { background: rgba(158,106,3,0.25); color: var(--yellow); }
-.method.DELETE { background: rgba(248,81,73,0.2); color: var(--red); }
-.method.ANY { background: rgba(110,118,129,0.25); color: var(--muted); }
-code.id { color: var(--dim); font-size: 11px; }
-.subject { color: var(--fg); }
-footer { padding: 8px 18px; color: var(--dim); font-size: 11px; border-top: 1px solid var(--border-soft); flex-shrink: 0; }
-.btn-danger { background: rgba(248,81,73,0.15) !important; border-color: rgba(248,81,73,0.3) !important; color: var(--red) !important; }
-.btn-primary { background: rgba(31,111,235,0.2) !important; border-color: rgba(31,111,235,0.4) !important; color: var(--accent) !important; }
-.actions { display: flex; gap: 6px; justify-content: flex-end; }
-.actions button { background: none; border: 1px solid var(--border); color: var(--muted); padding: 2px 8px; border-radius: 4px; font: inherit; cursor: pointer; font-size: 11px; }
-.actions button:hover { color: var(--fg); background: var(--border-soft); }
-.actions button.delete:hover { color: var(--red); border-color: var(--red); }
-.detail-actions { display: flex; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-soft); }
-.detail-actions button { background: var(--border-soft); border: 1px solid var(--border); color: var(--fg); padding: 5px 12px; border-radius: 4px; font: inherit; cursor: pointer; font-size: 12px; }
-.detail-actions button:hover { background: var(--border); }
-.detail-actions button.delete:hover { color: var(--red); border-color: var(--red); }
+.empty, .detail-empty { padding: 60px 24px; text-align: center; color: var(--dim); line-height: 1.8; }
+.empty pre { display: inline-block; text-align: left; margin-top: 10px; padding: 10px 14px; background: var(--bg-deep); border: 1px solid var(--border-soft); border-radius: 6px; color: var(--muted); white-space: pre-wrap; word-break: break-all; }
+
+.d-head { display: flex; gap: 12px; align-items: flex-start; }
+.d-title { font-size: 20px; font-weight: 600; flex: 1; min-width: 0; word-break: break-word; line-height: 1.35; }
+.d-title .path { font-family: var(--mono); font-size: 17.5px; }
+.d-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.meta { display: grid; grid-template-columns: max-content 1fr; gap: 2px 14px; font-size: 14.5px; }
+.meta dt { color: var(--muted); }
+.meta dd { word-break: break-word; min-width: 0; }
+.meta .sub { color: var(--dim); }
+
+.card { border: 1px solid var(--border); border-radius: 8px; background: var(--bg-elev); }
+.card-h { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-bottom: 1px solid var(--border-soft); color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+.card-h .grow { flex: 1; }
+.card-h button { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.card-b { padding: 10px 12px; }
+
+.codes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.code-big { font-family: var(--mono); font-size: 25.5px; font-weight: 700; letter-spacing: 3px; color: var(--code-fg); background: var(--code-bg); border: 1px solid var(--code-border); border-radius: 8px; padding: 4px 14px; cursor: copy; }
+.code-big:hover { filter: brightness(1.15); background: var(--code-bg); border-color: var(--code-fg); }
+.code-big small { font-size: 11.5px; letter-spacing: 0.5px; font-weight: 500; opacity: 0.7; margin-left: 4px; font-family: -apple-system, sans-serif; }
+
+.links { display: flex; flex-direction: column; }
+.link { padding: 8px 12px; border-top: 1px solid var(--border-soft); }
+.link:first-child { border-top: none; }
+.link-top { display: flex; gap: 8px; align-items: center; }
+.link-label { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.link-label .host { font-weight: 400; color: var(--muted); margin-left: 6px; font-size: 14px; }
+.link-btns { display: flex; gap: 5px; flex-shrink: 0; }
+.link-url { font-family: var(--mono); font-size: 13.5px; word-break: break-all; margin-top: 3px; color: var(--muted); line-height: 1.45; }
+.u-h { color: var(--fg); } .u-p { color: var(--fg-soft); } .u-k { color: var(--purple); } .u-v { color: var(--muted); } .u-a { color: var(--dim); }
+.params { width: 100%; border-collapse: collapse; margin-top: 7px; font-size: 14px; }
+.params td { padding: 3px 8px; border-top: 1px solid var(--border-soft); vertical-align: top; }
+.params td:first-child { font-family: var(--mono); color: var(--purple); white-space: nowrap; width: 1%; }
+.params td.v { font-family: var(--mono); word-break: break-all; }
+.params td:last-child { width: 1%; text-align: right; }
+.more { padding: 6px 12px; border-top: 1px solid var(--border-soft); }
+
+.atts { display: flex; flex-wrap: wrap; gap: 8px; }
+.att { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); max-width: 100%; }
+.att .ico { width: 34px; height: 34px; border-radius: 4px; background: var(--bg-elev); display: grid; place-items: center; font-size: 11.5px; font-weight: 700; color: var(--muted); overflow: hidden; flex-shrink: 0; }
+.att .ico img { width: 100%; height: 100%; object-fit: cover; }
+.att .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; }
+.att .sz { color: var(--dim); font-size: 13px; }
+
+.vtabs { display: flex; gap: 2px; align-items: center; border-bottom: 1px solid var(--border); }
+.vtabs button { border: none; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: var(--muted); padding: 6px 12px; margin-bottom: -1px; }
+.vtabs button.active { color: var(--fg); border-bottom-color: var(--accent); }
+.vtabs button:hover:not(.active) { color: var(--fg); background: none; }
+.vtabs .grow { flex: 1; }
+.vtabs .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 4px; }
+.vtabs .seg button { border: none; border-radius: 0; padding: 2px 9px; font-size: 13px; margin: 0; border-bottom: none; }
+.vtabs .seg button.active { background: var(--accent-bg); color: var(--accent); }
+
+.frame-wrap { background: #fff; border: 1px solid var(--border); border-radius: 6px; margin: 0 auto; width: 100%; overflow: hidden; transition: width .15s; }
+.mail-frame { display: block; width: 100%; height: 300px; border: 0; background: #fff; }
+.pre { padding: 12px 14px; background: var(--bg-deep); border: 1px solid var(--border-soft); border-radius: 6px; color: var(--fg-soft); overflow-x: auto; white-space: pre-wrap; word-break: break-word; font-family: var(--mono); font-size: 14px; line-height: 1.55; }
+.pre.prose { font-family: inherit; font-size: 16px; line-height: 1.6; }
+.pre a { word-break: break-all; }
+mark.code { background: var(--code-bg); color: var(--code-fg); border: 1px solid var(--code-border); border-radius: 4px; padding: 0 3px; font-weight: 700; cursor: copy; font-family: var(--mono); }
+.j-k { color: var(--purple); } .j-s { color: var(--green); } .j-n { color: var(--accent); } .j-b { color: var(--yellow); }
+.kv { width: 100%; border-collapse: collapse; font-size: 14px; }
+.kv td { padding: 4px 10px; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
+.kv td:first-child { font-family: var(--mono); color: var(--muted); white-space: nowrap; width: 1%; }
+.kv td.v { font-family: var(--mono); word-break: break-all; }
+.kv td:last-child:not(.v) { width: 1%; }
+
+.sms { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+.sms-who { display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
+.sms-who b { color: var(--fg); font-family: var(--mono); font-weight: 600; }
+.bubble { align-self: flex-start; max-width: 520px; background: var(--bubble); color: var(--bubble-fg); padding: 9px 13px; border-radius: 16px 16px 16px 4px; white-space: pre-wrap; word-break: break-word; font-size: 16.5px; line-height: 1.45; }
+.bubble a { color: inherit; text-decoration: underline; word-break: break-all; }
+.bubble mark.code { background: rgba(255,255,255,0.22); color: inherit; border-color: rgba(255,255,255,0.45); }
+
+footer { padding: 6px 16px; color: var(--dim); font-size: 13px; border-top: 1px solid var(--border-soft); flex-shrink: 0; display: flex; gap: 12px; flex-wrap: wrap; }
+footer .grow { flex: 1; }
+kbd { font-family: var(--mono); font-size: 11.5px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 3px; padding: 0 4px; color: var(--muted); }
+#toast { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%) translateY(20px); background: var(--fg); color: var(--bg); padding: 6px 14px; border-radius: 6px; font-size: 14px; opacity: 0; pointer-events: none; transition: all .18s; max-width: 80vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#toast.show { opacity: 1; transform: translateX(-50%); }
 
 /* Rule form */
-#rule-form { display: none; padding: 16px 18px; background: var(--bg-elev); border-bottom: 1px solid var(--border); }
+#rule-form { display: none; padding: 14px 16px; background: var(--bg-elev); border-bottom: 1px solid var(--border); }
 #rule-form.open { display: block; }
-#rule-form h2 { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+#rule-form h2 { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
 #rule-form .grid { display: grid; grid-template-columns: 120px 1fr 100px 100px; gap: 8px; margin-bottom: 8px; }
-#rule-form label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.3px; }
-#rule-form input, #rule-form select, #rule-form textarea {
-  width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
-  color: var(--fg); padding: 5px 8px; font: 12px var(--mono); box-sizing: border-box;
-}
+#rule-form label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.3px; }
+#rule-form input, #rule-form select, #rule-form textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--fg); padding: 5px 8px; font: 14px var(--mono); }
 #rule-form input:focus, #rule-form select:focus, #rule-form textarea:focus { outline: none; border-color: var(--accent); }
 #rule-form textarea { min-height: 60px; resize: vertical; }
-#rule-form .row { margin-bottom: 8px; }
-#rule-form .row.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#rule-form .frow { margin-bottom: 8px; }
 #rule-form .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
-#rule-form .form-actions button { padding: 5px 14px; }
-.hint { color: var(--dim); font-size: 11px; margin-top: 3px; }
+.hint { color: var(--dim); font-size: 13px; margin-top: 3px; }
+
+@media (max-width: 760px) {
+  main { flex-direction: column; }
+  .list-panel { width: 100%; max-width: none; min-width: 0; max-height: 40vh; border-right: none; border-bottom: 1px solid var(--border); }
+  .detail-inner { padding: 14px; }
+  #rule-form .grid { grid-template-columns: 1fr 1fr; }
+}
+.ports { display: flex; gap: 6px; flex-wrap: wrap; }
+.port { background: var(--bg); border-color: var(--border); color: var(--muted); padding: 3px 10px; font-size: 13px; }
+.port b { font-family: var(--mono); font-weight: 600; color: var(--fg); }
+.port:hover b { color: var(--accent); }
 </style>
 </head>
 <body>
 <header>
   <h1>mailhook</h1>
+  <div class="ports">
+    <button class="port" data-act="copy" data-v="{{SMTP_ADDR}}" title="SMTP server for apps under test (no TLS, no auth). Click to copy.">SMTP <b>{{SMTP_ADDR}}</b></button>
+    <button class="port" data-act="copy" data-v="{{HOOK_URL}}/" title="Point SMS or webhook senders here, any path. Click to copy.">Hooks <b>{{HOOK_URL}}</b></button>
+  </div>
   <div class="tabs">
     <button id="tab-mail" class="active">Mail<span class="count" id="cnt-mail">0</span></button>
     <button id="tab-hook">Hooks<span class="count" id="cnt-hook">0</span></button>
     <button id="tab-rule">Rules<span class="count" id="cnt-rule">0</span></button>
   </div>
+  <input id="search" type="search" placeholder="Filter: recipient, subject, body, path…  ( / )" autocomplete="off" spellcheck="false">
   <div class="controls">
-    <label id="livewrap"><span class="dot" id="livedot"></span> <input type="checkbox" id="auto" checked> live</label>
+    <label id="livewrap" title="Stream new captures as they arrive"><span class="dot" id="livedot"></span><input type="checkbox" id="auto" checked> live</label>
     <button id="add-rule" class="btn-primary" hidden>+ add rule</button>
-    <button id="refresh">refresh</button>
-    <button id="clear">clear</button>
+    <button id="refresh" title="Reload from server">refresh</button>
+    <button id="clear" class="btn-danger" title="Delete everything in this tab">clear</button>
   </div>
 </header>
 
@@ -150,11 +261,11 @@ footer { padding: 8px 18px; color: var(--dim); font-size: 11px; border-top: 1px 
       <input id="rf-delay" type="number" value="0" min="0">
     </div>
   </div>
-  <div class="row">
+  <div class="frow">
     <label>Response headers (one per line, <code>Key: Value</code>)</label>
     <textarea id="rf-headers" placeholder="Content-Type: application/json&#10;X-Provider: mailhook"></textarea>
   </div>
-  <div class="row">
+  <div class="frow">
     <label>Response body</label>
     <textarea id="rf-body" placeholder='{"messageId":"abc","queued":true}'></textarea>
     <div class="hint">JSON-looking bodies auto-get <code>Content-Type: application/json</code> unless you set one above.</div>
@@ -166,309 +277,723 @@ footer { padding: 8px 18px; color: var(--dim); font-size: 11px; border-top: 1px 
 </div>
 
 <main>
-  <div class="list-panel" id="list-panel">
-    <table id="table">
-      <thead id="thead"></thead>
-      <tbody id="tbody"></tbody>
-    </table>
-    <div class="empty" id="empty" hidden>no captures yet — send mail to <code>:1025</code> or POST to <code>:7790</code></div>
-  </div>
-  <div class="detail-panel" id="detail-panel">
-    <div class="detail-empty">Click a row to view details.</div>
-  </div>
+  <div class="list-panel" id="list-panel"><div id="list"></div></div>
+  <div class="detail-panel" id="detail-panel"></div>
 </main>
-<footer id="footer">SMTP :1025 · HOOK :7790 · API :8091</footer>
+<footer>
+  <span>SMTP {{SMTP}} · HOOK {{HOOK}} · API {{API}}</span>
+  <span class="grow"></span>
+  <span><kbd>↑</kbd><kbd>↓</kbd> move · <kbd>/</kbd> filter · <kbd>c</kbd> copy code · <kbd>o</kbd> open first link</span>
+</footer>
+<div id="toast"></div>
 
 <script>
-const kindState = {
-  current: 'mail',
-  data: [],
-  selected: { mail: null, hook: null, rule: null },
+const CFG = { smtp: '{{SMTP}}', hook: '{{HOOK}}', hookURL: '{{HOOK_URL}}', cap: Number('{{CAP}}') || 500 };
+const KINDS = ['mail', 'hook', 'rule'];
+const state = {
+  tab: 'mail',
+  data: { mail: [], hook: [], rule: [] },
+  sel: { mail: null, hook: null, rule: null },
+  q: '',
+  unread: new Set(),
+  view: {},               // capture id -> body view tab
+  width: 'full',          // email preview width
+  openParams: new Set(),  // "id|url" with params expanded
+  allLinks: new Set(),    // ids with all links shown
+  group: lsGet('mh.group', '1') === '1', // group hooks by path
+  collapsed: new Set(),   // collapsed hook paths
 };
-const mailViewMode = {};   // id → 'html' | 'text' | 'raw'  (default = best available)
-let editingRuleId = null;  // null = create, non-null = update
+function lsGet(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
+let editingRuleId = null;
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-// --- Row renderers (compact, left panel) ---
+// ---------- helpers ----------
 
-function rowClass(id) {
-  return kindState.selected[kindState.current] === id ? 'row selected' : 'row';
+function fmtTime(t) {
+  const d = new Date(t), now = new Date();
+  const hms = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return d.toDateString() === now.toDateString() ? hms : d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + hms;
+}
+function ago(t) {
+  const s = Math.round((Date.now() - new Date(t)) / 1000);
+  if (s < 60) return s + 's ago';
+  if (s < 3600) return Math.round(s / 60) + ' min ago';
+  if (s < 86400) return Math.round(s / 3600) + ' h ago';
+  return Math.round(s / 86400) + ' d ago';
+}
+function size(n) {
+  return n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(1) + ' KB' : (n / 1048576).toFixed(1) + ' MB';
+}
+function htmlText(html) {
+  const doc = new DOMParser().parseFromString(html || '', 'text/html');
+  doc.querySelectorAll('style,script,head,title').forEach(e => e.remove());
+  return (doc.body ? doc.body.textContent : '').replace(/\s+/g, ' ').trim();
+}
+function mailText(m) {
+  if (m._text === undefined) m._text = m.text ? m.text.replace(/\s+/g, ' ').trim() : htmlText(m.html || m.body);
+  return m._text;
+}
+function firstAddr(list) {
+  const a = (list || []).filter(Boolean);
+  return a.length ? a[0] + (a.length > 1 ? ' +' + (a.length - 1) : '') : '(no recipient)';
+}
+function hostOf(u) { try { return new URL(u).host; } catch { return ''; } }
+function safeHref(u) { return /^(https?:|mailto:|tel:)/i.test(u) ? u : null; }
+function shq(s) { return String(s).replace(/'/g, `'\\''`); }
+
+// Escape text, link URLs and mark known codes.
+function richText(text, codes) {
+  const urlRe = /\bhttps?:\/\/[^\s<>"'`]+/gi;
+  const codeRe = codes && codes.length
+    ? new RegExp('(^|[^0-9A-Za-z])(' + codes.map(c => c.replace(/[-]/g, '\\-')).join('|') + ')(?=$|[^0-9A-Za-z])', 'g') : null;
+  const plain = s => {
+    const e = esc(s);
+    return codeRe ? e.replace(codeRe, (m, pre, c) => `${pre}<mark class="code" data-act="copy" data-v="${c}" title="copy">${c}</mark>`) : e;
+  };
+  let out = '', last = 0, m;
+  while ((m = urlRe.exec(text))) {
+    let u = m[0].replace(/[.,;:!?'")\]]+$/, '');
+    out += plain(text.slice(last, m.index));
+    out += `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u)}</a>`;
+    last = m.index + u.length;
+    urlRe.lastIndex = last;
+  }
+  return out + plain(text.slice(last));
 }
 
-function renderMailRow(m) {
-  const t = new Date(m.time).toLocaleTimeString();
-  return `<tr class="${rowClass(m.id)}" data-id="${m.id}">`
-    + `<td>${t}</td>`
-    + `<td>${esc(m.from)}</td>`
-    + `<td class="subject">${esc(m.subject||'(no subject)')}</td>`
-    + `<td class="actions"><button class="delete" data-act="del-mail" data-id="${m.id}" title="delete">×</button></td>`
-    + `</tr>`;
+function urlHTML(u) {
+  let x;
+  try { x = new URL(u); } catch { return esc(u); }
+  if (!/^https?:$/.test(x.protocol)) return esc(u);
+  const q = u.indexOf('?'), h = u.indexOf('#');
+  const query = q < 0 ? '' : u.slice(q + 1, h > q ? h : undefined);
+  let out = `<span class="u-a">${esc(x.protocol)}//</span><span class="u-h">${esc(x.host)}</span><span class="u-p">${esc(x.pathname)}</span>`;
+  if (query) {
+    out += '<span class="u-a">?</span>' + query.split('&').map(p => {
+      const i = p.indexOf('=');
+      return i < 0 ? `<span class="u-k">${esc(p)}</span>`
+        : `<span class="u-k">${esc(p.slice(0, i))}</span><span class="u-a">=</span><span class="u-v">${esc(p.slice(i + 1))}</span>`;
+    }).join('<span class="u-a">&amp;</span>');
+  }
+  if (x.hash) out += `<span class="u-a">${esc(x.hash)}</span>`;
+  return out;
 }
 
-function renderHookRow(h) {
-  const t = new Date(h.time).toLocaleTimeString();
-  const method = (h.method||'').toUpperCase();
-  return `<tr class="${rowClass(h.id)}" data-id="${h.id}">`
-    + `<td>${t}</td>`
-    + `<td><span class="method ${method}">${method}</span></td>`
-    + `<td>${esc(h.path)}</td>`
-    + `<td class="actions"><button class="delete" data-act="del-hook" data-id="${h.id}" title="delete">×</button></td>`
-    + `</tr>`;
+function hlJSON(v) {
+  const s = JSON.stringify(v, null, 2);
+  const re = /("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false|null)\b|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(s))) {
+    out += esc(s.slice(last, m.index));
+    if (m[1]) out += m[2] ? `<span class="j-k">${esc(m[1])}</span>${m[2]}` : `<span class="j-s">${esc(m[1])}</span>`;
+    else if (m[3]) out += `<span class="j-b">${m[3]}</span>`;
+    else out += `<span class="j-n">${m[4]}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(s.slice(last));
 }
 
-function renderRuleRow(r) {
-  const method = (r.method && r.method !== '*') ? r.method.toUpperCase() : 'ANY';
-  return `<tr class="${rowClass(r.id)}" data-id="${r.id}">`
-    + `<td><span class="method ${method === 'ANY' ? 'ANY' : method}">${method}</span></td>`
-    + `<td>${esc(r.path||'*')}</td>`
-    + `<td>${r.status||200}</td>`
-    + `<td class="actions">`
-    +   `<button data-act="edit-rule" data-id="${r.id}" title="edit">✎</button>`
-    +   `<button class="delete" data-act="del-rule" data-id="${r.id}" title="delete">×</button>`
-    + `</td>`
-    + `</tr>`;
+function parseJSON(s) { try { return { ok: true, v: JSON.parse(s) }; } catch { return { ok: false }; } }
+function parseForm(s) {
+  if (!/^[^=&\s]+=[^&\s]*(&[^=&\s]+=[^&\s]*)*$/.test(s.trim())) return null;
+  try { return [...new URLSearchParams(s.trim())]; } catch { return null; }
 }
 
-// --- Detail renderers (right panel) ---
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => t.classList.remove('show'), 1300);
+}
+async function copy(v) {
+  try { await navigator.clipboard.writeText(v); }
+  catch {
+    const ta = document.createElement('textarea');
+    ta.value = v; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+  }
+  toast('Copied ' + (v.length > 60 ? v.slice(0, 57) + '…' : v));
+}
+
+function searchText(kind, x) {
+  if (x._s) return x._s;
+  if (kind === 'mail') {
+    x._s = [x.from, (x.to || []).join(' '), x.headers && x.headers.From, x.headers && x.headers.To, x.subject,
+      mailText(x), (x.codes || []).join(' '), (x.links || []).map(l => l.url).join(' ')].join('\n').toLowerCase();
+  } else if (kind === 'hook') {
+    x._s = [x.method, x.path, x.query, x.body, x.sms && x.sms.to, x.sms && x.sms.from, x.status].join('\n').toLowerCase();
+  } else {
+    x._s = [x.method, x.path, x.status, x.body].join('\n').toLowerCase();
+  }
+  return x._s;
+}
+function filtered() {
+  const q = state.q.trim().toLowerCase(), kind = state.tab;
+  const items = state.data[kind].slice().reverse();
+  if (!q) return items;
+  const terms = q.split(/\s+/);
+  return items.filter(x => { const s = searchText(kind, x); return terms.every(t => s.includes(t)); });
+}
+// Items in display order (skips collapsed groups).
+function visible() {
+  const items = filtered();
+  if (state.tab !== 'hook' || !state.group) return items;
+  return hookGroups(items).flatMap(g => state.collapsed.has(g.path) ? [] : g.hooks);
+}
+function current() {
+  const id = state.sel[state.tab];
+  return id ? state.data[state.tab].find(x => x.id === id) : null;
+}
+
+// ---------- rules: mirror of the server's matchRule ----------
+
+function ruleFor(method, path) {
+  const rules = state.data.rule;
+  for (let i = rules.length - 1; i >= 0; i--) {
+    const r = rules[i];
+    const mOK = !r.method || r.method === '*' || r.method.toUpperCase() === method.toUpperCase();
+    let pOK = !r.path || r.path === '*' || r.path === path;
+    if (!pOK && r.path.endsWith('/*')) { const pre = r.path.slice(0, -2); pOK = path === pre || path.startsWith(pre + '/'); }
+    if (mOK && pOK) return r;
+  }
+  return null;
+}
+
+// Hooks grouped by path, newest activity first.
+function hookGroups(items) {
+  const map = new Map();
+  for (const h of items) {
+    if (!map.has(h.path)) map.set(h.path, []);
+    map.get(h.path).push(h);
+  }
+  return [...map.entries()].map(([path, hooks]) => ({ path, hooks }));
+}
+
+// ---------- list ----------
+
+function codeChips(codes) {
+  return (codes || []).slice(0, 2).map(c => `<span class="chip code" data-act="copy" data-v="${esc(c)}" title="copy code">${esc(c)}</span>`).join('');
+}
+
+function mailRow(m) {
+  const nAtt = (m.attachments || []).filter(a => !a.inline).length;
+  const nLinks = (m.links || []).filter(l => /^https?:/i.test(l.url)).length;
+  return `<div class="${rowCls(m.id)}" data-id="${esc(m.id)}">
+    <div class="r1"><span class="who" title="${esc((m.to || []).join(', '))}">${esc(firstAddr(m.to))}</span><span class="time">${fmtTime(m.time)}</span></div>
+    <div class="subj">${esc(m.subject || '(no subject)')}</div>
+    <div class="snip">${esc(mailText(m).slice(0, 160))}</div>
+    <div class="chips">${codeChips(m.codes)}${nLinks ? `<span class="chip">${nLinks} link${nLinks > 1 ? 's' : ''}</span>` : ''}${nAtt ? `<span class="chip">📎 ${nAtt}</span>` : ''}</div>
+    <button class="x btn-danger" data-act="del" data-id="${esc(m.id)}" title="delete">×</button>
+  </div>`;
+}
+
+function hookRow(h) {
+  const method = esc((h.method || '').toUpperCase());
+  let line = '';
+  if (h.sms) line = (h.sms.to ? '→ ' + h.sms.to + '  ' : '') + h.sms.text;
+  else if (h.body) line = h.body;
+  else if (h.query) line = '?' + decodeURIComponentSafe(h.query);
+  const st = h.status && h.status !== 200 ? `<span class="chip ${h.status >= 400 ? 'err' : 'warn'}">${h.status}</span>` : '';
+  return `<div class="${rowCls(h.id)}" data-id="${esc(h.id)}">
+    <div class="r1"><span class="method ${method}">${method}</span><span class="path">${esc(h.path)}</span><span class="time">${fmtTime(h.time)}</span></div>
+    <div class="snip">${esc(line.replace(/\s+/g, ' ').slice(0, 180)) || '<i>(empty body)</i>'}</div>
+    <div class="chips">${h.sms ? '<span class="chip smsc">SMS</span>' : ''}${codeChips(h.codes)}${st}${h.rule ? '<span class="chip">rule</span>' : ''}</div>
+    <button class="x btn-danger" data-act="del" data-id="${esc(h.id)}" title="delete">×</button>
+  </div>`;
+}
+
+function ruleRow(r) {
+  const method = (r.method && r.method !== '*') ? esc(r.method.toUpperCase()) : 'ANY';
+  return `<div class="${rowCls(r.id)}" data-id="${esc(r.id)}">
+    <div class="r1"><span class="method ${method}">${method}</span><span class="path">${esc(r.path || '*')}</span><span class="time">→ ${r.status || 200}</span></div>
+    <div class="snip">${esc((r.body || '(empty body)').slice(0, 160))}${r.delay_ms ? ' · ' + r.delay_ms + ' ms delay' : ''}</div>
+    <button class="x btn-danger" data-act="del" data-id="${esc(r.id)}" title="delete">×</button>
+  </div>`;
+}
+
+function decodeURIComponentSafe(s) { try { return decodeURIComponent(s.replace(/\+/g, ' ')); } catch { return s; } }
+function rowCls(id) {
+  return 'row' + (state.sel[state.tab] === id ? ' sel' : '') + (state.unread.has(id) ? ' unread' : '');
+}
+
+function emptyHTML() {
+  if (state.q) return `<div class="empty">Nothing matches “${esc(state.q)}”.</div>`;
+  if (state.tab === 'rule') return '<div class="empty">No rules yet. Click <b>+ add rule</b> to mock a response for a method and path.</div>';
+  if (state.tab === 'hook') return `<div class="empty">No webhooks yet. Point your app's SMS / HTTP notifier at <code>${esc(CFG.hookURL)}/&lt;any path&gt;</code>.
+    <pre>curl -X POST ${esc(CFG.hookURL)}/sms \\\n  -H 'Content-Type: application/json' \\\n  -d '{"to":"+94771234567","message":"Your code is 123456"}'</pre></div>`;
+  return `<div class="empty">No mail yet. Send SMTP to <code>127.0.0.1${esc(CFG.smtp)}</code> (no TLS, no auth).
+    <pre>swaks --server 127.0.0.1${esc(CFG.smtp)} --to user@example.com \\\n  --header "Subject: OTP 482913" --body "Code: 482913"</pre></div>`;
+}
+
+function answerHTML(method, path) {
+  const r = ruleFor(method, path);
+  return r ? `<span class="rule" title="rule ${esc(r.id)}">${esc(method)} → <b>${r.status || 200}</b> rule</span>`
+           : `${esc(method)} → <b>200</b> default`;
+}
+
+function groupHeader(g) {
+  const methods = [...new Set(g.hooks.map(h => (h.method || 'GET').toUpperCase()))];
+  const closed = state.collapsed.has(g.path);
+  const rule = ruleFor(methods[0], g.path);
+  return `<div class="group" data-act="toggle-group" data-v="${esc(g.path)}">
+    <span class="tw">${closed ? '▸' : '▾'}</span>
+    <span class="gp" title="${esc(g.path)}">${esc(g.path)}</span>
+    <span class="count">${g.hooks.length}</span>
+    <span class="ans">${methods.map(m => answerHTML(m, g.path)).join(' · ')}</span>
+    <button class="btn-sm" data-act="mock" data-m="${esc(methods[0])}" data-v="${esc(g.path)}"
+      title="Define what mailhook answers on this path">${rule ? 'Edit response' : 'Set response'}</button>
+  </div>`;
+}
+
+function renderList() {
+  const items = filtered();
+  const row = state.tab === 'mail' ? mailRow : state.tab === 'hook' ? hookRow : ruleRow;
+  let html;
+  if (!items.length) html = emptyHTML();
+  else if (state.tab === 'hook' && state.group) {
+    html = hookGroups(items).map(g => '<div class="grp">' + groupHeader(g) + (state.collapsed.has(g.path) ? '' : g.hooks.map(hookRow).join('')) + '</div>').join('');
+  } else html = items.map(row).join('');
+  if (state.tab === 'hook' && state.data.hook.length) {
+    const paths = new Set(state.data.hook.map(h => h.path)).size;
+    html = `<div class="list-tools"><label><input type="checkbox" data-act="group" ${state.group ? 'checked' : ''}> group by path</label>
+      <span>${paths} path${paths === 1 ? '' : 's'}</span><span class="grow"></span>
+      ${state.group ? '<button class="btn-sm" data-act="collapse-all">collapse all</button><button class="btn-sm" data-act="expand-all">expand all</button>' : ''}</div>` + html;
+  }
+  $('list').innerHTML = html;
+}
+
+function renderCounts() {
+  let unread = 0;
+  for (const k of KINDS) {
+    $('cnt-' + k).textContent = state.data[k].length;
+    const n = state.data[k].filter(x => state.unread.has(x.id)).length;
+    $('cnt-' + k).classList.toggle('has-new', n > 0);
+    unread += n;
+  }
+  document.title = (unread ? `(${unread}) ` : '') + 'mailhook';
+}
+
+// ---------- detail: shared pieces ----------
+
+function codesCard(codes) {
+  if (!codes || !codes.length) return '';
+  return `<div class="codes">${codes.map(c => `<button class="code-big" data-act="copy" data-v="${esc(c)}" title="Click to copy">${esc(c)}<small>copy</small></button>`).join('')}</div>`;
+}
+
+function linksCard(id, links) {
+  if (!links || !links.length) return '';
+  const all = state.allLinks.has(id);
+  const shown = all ? links : links.slice(0, 6);
+  const items = shown.map(l => {
+    let params = [];
+    try { params = [...new URL(l.url).searchParams]; } catch {}
+    const key = id + '|' + l.url, open = state.openParams.has(key);
+    const href = safeHref(l.url);
+    const host = hostOf(l.url);
+    const label = l.text || (l.url.startsWith('mailto:') ? l.url.slice(7) : host || l.url);
+    return `<div class="link">
+      <div class="link-top">
+        <span class="link-label" title="${esc(l.text || l.url)}">${esc(label)}${l.text && host ? `<span class="host">${esc(host)}</span>` : ''}</span>
+        <span class="link-btns">
+          ${params.length ? `<button class="btn-sm" data-act="params" data-k="${esc(key)}">${params.length} param${params.length > 1 ? 's' : ''} ${open ? '▴' : '▾'}</button>` : ''}
+          <button class="btn-sm" data-act="copy" data-v="${esc(l.url)}">Copy</button>
+          ${href ? `<a class="btn btn-sm btn-primary" href="${esc(href)}" target="_blank" rel="noopener noreferrer">Open ↗</a>` : ''}
+        </span>
+      </div>
+      <div class="link-url">${urlHTML(l.url)}</div>
+      ${open ? `<table class="params">${params.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="v">${esc(v)}</td><td><button class="btn-sm" data-act="copy" data-v="${esc(v)}">Copy</button></td></tr>`).join('')}</table>` : ''}
+    </div>`;
+  }).join('');
+  const more = links.length > 6 ? `<div class="more"><button class="btn-sm" data-act="all-links" data-id="${esc(id)}">${all ? 'Show fewer' : `Show all ${links.length} links`}</button></div>` : '';
+  return `<div class="card"><div class="card-h">Links <span class="count">${links.length}</span><span class="grow"></span>
+    ${links.length > 1 ? `<button class="btn-sm" data-act="copy" data-v="${esc(links.map(l => l.url).join('\n'))}">Copy all</button>` : ''}</div>
+    <div class="links">${items}</div>${more}</div>`;
+}
+
+function kvTable(rows) {
+  if (!rows.length) return '<div class="pre">(none)</div>';
+  return `<div class="card"><table class="kv">${rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="v">${esc(v)}</td><td><button class="btn-sm" data-act="copy" data-v="${esc(v)}">Copy</button></td></tr>`).join('')}</table></div>`;
+}
+
+function vtabs(id, tabs, active, extra = '') {
+  return `<div class="vtabs">${tabs.map(([k, label]) => `<button data-act="view" data-id="${esc(id)}" data-v="${k}" class="${k === active ? 'active' : ''}">${label}</button>`).join('')}<span class="grow"></span>${extra}</div>`;
+}
+
+// ---------- detail: mail ----------
+
+function mailSrcdoc(m) {
+  let h = m.html || '';
+  const cids = {};
+  for (const a of m.attachments || []) if (a.content_id) cids[a.content_id.toLowerCase()] = `${location.origin}/mail/${encodeURIComponent(m.id)}/part/${a.index}`;
+  h = h.replace(/cid:([^"'\s)>]+)/gi, (s, c) => cids[decodeURIComponentSafe(c).toLowerCase()] || s);
+  const inject = '<base target="_blank"><meta name="referrer" content="no-referrer">';
+  if (/<head\b[^>]*>/i.test(h)) return h.replace(/<head\b[^>]*>/i, x => x + inject);
+  if (/<html\b[^>]*>/i.test(h)) return h.replace(/<html\b[^>]*>/i, x => x + '<head>' + inject + '</head>');
+  if (/^\s*<!doctype[^>]*>/i.test(h)) return h.replace(/^\s*<!doctype[^>]*>/i, x => x + inject);
+  return inject + h;
+}
+
+function fitFrame(f) {
+  try {
+    const d = f.contentDocument;
+    if (!d || !d.documentElement) return;
+    const h = Math.max(d.documentElement.scrollHeight, d.body ? d.body.scrollHeight : 0);
+    if (Math.abs(f.offsetHeight - h) > 1) f.style.height = Math.min(h, 30000) + 'px';
+  } catch {}
+}
+function setupFrame(f) {
+  f.addEventListener('load', () => {
+    fitFrame(f);
+    const d = f.contentDocument;
+    if (!d) return;
+    d.querySelectorAll('img').forEach(i => { i.addEventListener('load', () => fitFrame(f)); i.addEventListener('error', () => fitFrame(f)); });
+    setTimeout(() => fitFrame(f), 300);
+    setTimeout(() => fitFrame(f), 1200);
+  });
+}
+
+function addrs(s) { return (s || '').toLowerCase(); }
 
 function renderMailDetail(m) {
-  const headerLines = Object.entries(m.headers||{}).map(([k,v]) => `${k}: ${v}`).join('\n');
-  const hasHTML = !!m.html;
-  const hasText = !!m.text;
-  const mode = mailViewMode[m.id] || (hasHTML ? 'html' : (hasText ? 'text' : 'raw'));
+  const H = m.headers || {};
+  const hasHTML = !!m.html, hasText = !!m.text;
+  const views = [];
+  if (hasHTML) views.push(['preview', 'Preview']);
+  if (hasText || !hasHTML) views.push(['text', 'Text']);
+  if (hasHTML) views.push(['html', 'HTML source']);
+  views.push(['headers', 'Headers'], ['raw', 'Raw']);
+  let view = state.view[m.id];
+  if (!views.some(v => v[0] === view)) view = views[0][0];
 
-  const tabs = [];
-  if (hasHTML) tabs.push(`<button data-act="mail-mode" data-id="${m.id}" data-mode="html"${mode==='html'?' class="active"':''}>rendered</button>`);
-  if (hasText) tabs.push(`<button data-act="mail-mode" data-id="${m.id}" data-mode="text"${mode==='text'?' class="active"':''}>text</button>`);
-  tabs.push(`<button data-act="mail-mode" data-id="${m.id}" data-mode="raw"${mode==='raw'?' class="active"':''}>raw</button>`);
+  const shown = addrs(H.To) + ' ' + addrs(H.Cc);
+  const bcc = (m.to || []).filter(a => a && !shown.includes(a.toLowerCase()));
 
-  let bodyBlock;
-  if (mode === 'html' && hasHTML) {
-    bodyBlock = `<iframe class="mail-iframe" sandbox="" srcdoc="${esc(m.html)}"></iframe>`;
-  } else if (mode === 'text' && hasText) {
-    bodyBlock = `<pre class="detail-pre" style="max-height:none;flex:1;">${esc(m.text)}</pre>`;
+  const meta = [
+    ['From', H.From || m.from],
+    ['To', H.To || (m.to || []).join(', ')],
+    H.Cc && ['Cc', H.Cc],
+    bcc.length && H.To && ['Bcc', bcc.join(', ') + ' (envelope only)'],
+    H['Reply-To'] && ['Reply-To', H['Reply-To']],
+    H.From && m.from && !addrs(H.From).includes(m.from.toLowerCase()) && ['Envelope', m.from],
+  ].filter(Boolean);
+
+  const atts = (m.attachments || []);
+  const attCard = atts.length ? `<div class="card"><div class="card-h">Attachments <span class="count">${atts.length}</span></div><div class="card-b atts">${atts.map(a => {
+    const url = `/mail/${encodeURIComponent(m.id)}/part/${a.index}`;
+    const ext = (a.filename || a.content_type || '').split(/[./]/).pop().slice(0, 4).toUpperCase();
+    const ico = a.content_type.startsWith('image/') ? `<img src="${url}" alt="">` : esc(ext);
+    return `<div class="att"><span class="ico">${ico}</span><span><div class="nm" title="${esc(a.filename || a.content_type)}">${esc(a.filename || (a.content_id ? 'cid:' + a.content_id : a.content_type))}</div>
+      <div class="sz">${esc(a.content_type)} · ${size(a.size)}${a.inline ? ' · inline' : ''}</div></span>
+      <a class="btn btn-sm" href="${url}" target="_blank" rel="noopener">Open</a><a class="btn btn-sm" href="${url}?download=1">⬇</a></div>`;
+  }).join('')}</div></div>` : '';
+
+  let body;
+  if (view === 'preview') {
+    const w = state.width === 'full' ? '100%' : state.width + 'px';
+    body = `<div class="frame-wrap" style="width:${w};max-width:100%"><iframe class="mail-frame" id="mail-frame" title="email preview"
+      sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" srcdoc="${esc(mailSrcdoc(m))}"></iframe></div>`;
+  } else if (view === 'text') {
+    const t = hasText ? m.text : (m.body || m.raw || '');
+    body = `<div class="pre prose">${richText(t, m.codes) || '(empty)'}</div>`;
+  } else if (view === 'html') {
+    body = `<div class="pre">${esc(m.html)}</div>`;
+  } else if (view === 'headers') {
+    body = kvTable(Object.entries(H).sort(([a], [b]) => a.localeCompare(b)));
   } else {
-    bodyBlock = `<pre class="detail-pre" style="max-height:none;flex:1;">${esc(m.raw || m.body || '(empty)')}</pre>`;
+    body = `<div class="pre">${esc(m.raw || m.body || '(empty)')}</div>`;
   }
+  const widthSeg = view === 'preview' ? `<span class="seg" title="Preview width">${[['full', 'Desktop'], ['600', '600'], ['375', 'Mobile']].map(([k, l]) =>
+    `<button data-act="width" data-v="${k}" class="${state.width === k ? 'active' : ''}">${l}</button>`).join('')}</span>` : '';
 
   return `
-    <div class="detail-head">
-      <div class="detail-title">${esc(m.subject||'(no subject)')}</div>
-      <div class="detail-meta">
-        <div><b>From:</b> ${esc(m.from)}</div>
-        <div><b>To:</b> ${esc((m.to||[]).join(', '))}</div>
-        <div><b>Time:</b> ${new Date(m.time).toLocaleString()} · <code class="id">${m.id}</code></div>
+    <div class="d-head">
+      <div class="d-title">${esc(m.subject || '(no subject)')}</div>
+      <div class="d-actions">
+        <a class="btn btn-sm" href="/mail/${encodeURIComponent(m.id)}/eml" title="Download as .eml (opens in a mail client)">⬇ .eml</a>
+        <button class="btn-sm btn-danger" data-act="del" data-id="${esc(m.id)}">delete</button>
       </div>
     </div>
-    <div class="section">Headers</div>
-    <pre class="detail-pre">${esc(headerLines)}</pre>
-    <div class="section">Body ${tabs.join('')}</div>
-    ${bodyBlock}
-    <div class="detail-actions">
-      <button class="delete" data-act="del-mail" data-id="${m.id}">delete</button>
-    </div>
-  `;
+    <dl class="meta">
+      ${meta.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}
+      <dt>Received</dt><dd>${new Date(m.time).toLocaleString()} <span class="sub">· ${ago(m.time)} · <code>${esc(m.id)}</code></span></dd>
+    </dl>
+    ${codesCard(m.codes)}
+    ${linksCard(m.id, m.links)}
+    ${attCard}
+    <div>${vtabs(m.id, views, view, widthSeg)}</div>
+    ${body}`;
+}
+
+// ---------- detail: hook ----------
+
+function curlFor(h) {
+  const skip = new Set(['content-length', 'connection', 'accept-encoding', 'host']);
+  let c = `curl -X ${h.method} '${shq(CFG.hookURL + h.path + (h.query ? '?' + h.query : ''))}'`;
+  for (const [k, vs] of Object.entries(h.headers || {})) {
+    if (skip.has(k.toLowerCase())) continue;
+    for (const v of vs || []) c += ` \\\n  -H '${shq(k + ': ' + v)}'`;
+  }
+  if (h.body) c += ` \\\n  --data-raw '${shq(h.body)}'`;
+  return c;
 }
 
 function renderHookDetail(h) {
-  const headerLines = Object.entries(h.headers||{}).map(([k,v]) => `${k}: ${(v||[]).join(', ')}`).join('\n');
-  const method = (h.method||'').toUpperCase();
+  const method = esc((h.method || '').toUpperCase());
+  const ct = ((h.headers || {})['Content-Type'] || [])[0] || '';
+  const body = h.body || '';
+  const json = body.trim() ? parseJSON(body) : { ok: false };
+  const form = !json.ok && body ? parseForm(body) : null;
+  const query = h.query ? [...new URLSearchParams(h.query)] : [];
+  const headerRows = Object.entries(h.headers || {}).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => [k, (v || []).join(', ')]);
+
+  const views = [['body', json.ok ? 'Body · JSON' : form ? 'Body · Form' : 'Body']];
+  if (json.ok || form) views.push(['raw', 'Raw body']);
+  if (query.length) views.push(['query', `Query (${query.length})`]);
+  views.push(['headers', `Headers (${headerRows.length})`]);
+  let view = state.view[h.id];
+  if (!views.some(v => v[0] === view)) view = views[0][0];
+
+  let content;
+  if (view === 'body') {
+    if (!body) content = '<div class="pre">(empty body)</div>';
+    else if (json.ok) content = `<div class="pre">${hlJSON(json.v)}</div>`;
+    else if (form) content = kvTable(form);
+    else content = `<div class="pre">${esc(body)}</div>`;
+  } else if (view === 'raw') content = `<div class="pre">${esc(body)}</div>`;
+  else if (view === 'query') content = kvTable(query);
+  else content = kvTable(headerRows);
+
+  const sms = h.sms ? `<div class="card"><div class="card-h">Message<span class="grow"></span>
+      <button class="btn-sm" data-act="copy" data-v="${esc(h.sms.text)}">Copy text</button></div>
+    <div class="sms">
+      ${h.sms.to || h.sms.from ? `<div class="sms-who">${h.sms.to ? `<span>To <b>${esc(h.sms.to)}</b></span>` : ''}${h.sms.from ? `<span>From <b>${esc(h.sms.from)}</b></span>` : ''}</div>` : ''}
+      <div class="bubble">${richText(h.sms.text, h.codes)}</div>
+    </div></div>` : '';
+
+  const st = h.status || 200;
   return `
-    <div class="detail-head">
-      <div class="detail-title"><span class="method ${method}">${method}</span> ${esc(h.path)}</div>
-      <div class="detail-meta">
-        <div><b>Query:</b> ${esc(h.query||'(none)')}</div>
-        <div><b>From:</b> ${esc(h.remote||'')}</div>
-        <div><b>Time:</b> ${new Date(h.time).toLocaleString()} · <code class="id">${h.id}</code></div>
+    <div class="d-head">
+      <div class="d-title"><span class="method ${method}">${method}</span> <span class="path">${esc(h.path)}</span></div>
+      <div class="d-actions">
+        <button class="btn-sm" data-act="curl" data-id="${esc(h.id)}" title="Copy a curl command that replays this request to mailhook">Copy as curl</button>
+        <button class="btn-sm btn-danger" data-act="del" data-id="${esc(h.id)}">delete</button>
       </div>
     </div>
-    <div class="section">Headers</div>
-    <pre class="detail-pre">${esc(headerLines||'(none)')}</pre>
-    <div class="section">Body (${(h.body||'').length} bytes)</div>
-    <pre class="detail-pre" style="max-height:none;flex:1;">${esc(h.body||'(empty)')}</pre>
-    <div class="detail-actions">
-      <button class="delete" data-act="del-hook" data-id="${h.id}">delete</button>
-    </div>
-  `;
+    <dl class="meta">
+      <dt>Received</dt><dd>${new Date(h.time).toLocaleString()} <span class="sub">· ${ago(h.time)} · <code>${esc(h.id)}</code></span></dd>
+      <dt>From</dt><dd>${esc(h.remote || '')}</dd>
+      ${ct ? `<dt>Type</dt><dd>${esc(ct)} <span class="sub">· ${size(body.length)}</span></dd>` : ''}
+      <dt>Answered</dt><dd><span class="chip ${st >= 400 ? 'err' : st !== 200 ? 'warn' : ''}">${st}</span> ${h.rule ? `by rule <a href="#rule/${esc(h.rule)}" data-act="goto-rule" data-id="${esc(h.rule)}"><code>${esc(h.rule)}</code></a>` : '<span class="sub">default response</span>'}
+        <button class="btn-sm" data-act="mock" data-m="${method}" data-v="${esc(h.path)}" style="margin-left:6px">${ruleFor(h.method, h.path) ? 'Edit response' : 'Set response'} for ${method} ${esc(h.path)}</button></dd>
+    </dl>
+    ${codesCard(h.codes)}
+    ${sms}
+    ${linksCard(h.id, h.links)}
+    <div>${vtabs(h.id, views, view)}</div>
+    ${content}`;
 }
 
+// ---------- detail: rule ----------
+
 function renderRuleDetail(r) {
-  const method = (r.method && r.method !== '*') ? r.method.toUpperCase() : 'ANY';
-  const headerLines = Object.entries(r.headers||{}).map(([k,v]) => `${k}: ${v}`).join('\n');
+  const method = (r.method && r.method !== '*') ? esc(r.method.toUpperCase()) : 'ANY';
+  const headerRows = Object.entries(r.headers || {});
+  const json = r.body ? parseJSON(r.body) : { ok: false };
+  const hits = state.data.hook.filter(h => h.rule === r.id).length;
   return `
-    <div class="detail-head">
-      <div class="detail-title"><span class="method ${method === 'ANY' ? 'ANY' : method}">${method}</span> ${esc(r.path||'*')}</div>
-      <div class="detail-meta">
-        <div><b>Status:</b> ${r.status||200}</div>
-        <div><b>Delay:</b> ${r.delay_ms||0} ms</div>
-        <div><b>Created:</b> ${new Date(r.created).toLocaleString()} · <code class="id">${r.id}</code></div>
+    <div class="d-head">
+      <div class="d-title"><span class="method ${method}">${method}</span> <span class="path">${esc(r.path || '*')}</span></div>
+      <div class="d-actions">
+        <button class="btn-sm" data-act="edit-rule" data-id="${esc(r.id)}">edit</button>
+        <button class="btn-sm btn-danger" data-act="del" data-id="${esc(r.id)}">delete</button>
       </div>
     </div>
-    <div class="section">Response headers</div>
-    <pre class="detail-pre">${esc(headerLines||'(none)')}</pre>
-    <div class="section">Response body</div>
-    <pre class="detail-pre" style="max-height:none;flex:1;">${esc(r.body||'(empty)')}</pre>
-    <div class="detail-actions">
-      <button data-act="edit-rule" data-id="${r.id}">edit</button>
-      <button class="delete" data-act="del-rule" data-id="${r.id}">delete</button>
-    </div>
-  `;
+    <dl class="meta">
+      <dt>Status</dt><dd>${r.status || 200}</dd>
+      <dt>Delay</dt><dd>${r.delay_ms || 0} ms</dd>
+      <dt>Matched</dt><dd>${hits} captured request${hits === 1 ? '' : 's'}</dd>
+      <dt>Created</dt><dd>${new Date(r.created).toLocaleString()} <span class="sub">· <code>${esc(r.id)}</code></span></dd>
+    </dl>
+    <div class="card"><div class="card-h">Response headers</div>${headerRows.length ? `<table class="kv">${headerRows.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="v">${esc(v)}</td></tr>`).join('')}</table>` : '<div class="card-b sub">(none)</div>'}</div>
+    <div class="card"><div class="card-h">Response body</div><div class="card-b"><div class="pre">${r.body ? (json.ok ? hlJSON(json.v) : esc(r.body)) : '(empty)'}</div></div></div>`;
 }
 
 function renderDetail() {
-  const detail = $('detail-panel');
-  const kind = kindState.current;
-  const id = kindState.selected[kind];
-  if (!id) {
-    detail.innerHTML = '<div class="detail-empty">Click a row to view details.</div>';
-    return;
-  }
-  const item = kindState.data.find(x => x.id === id);
+  const panel = $('detail-panel');
+  const item = current();
   if (!item) {
-    kindState.selected[kind] = null;
-    detail.innerHTML = '<div class="detail-empty">Item no longer available — pick another.</div>';
+    if (state.sel[state.tab]) state.sel[state.tab] = null;
+    panel.innerHTML = `<div class="detail-empty">${state.data[state.tab].length ? 'Select an item to see it here.' : ''}</div>`;
     return;
   }
-  if (kind === 'mail') detail.innerHTML = renderMailDetail(item);
-  else if (kind === 'hook') detail.innerHTML = renderHookDetail(item);
-  else detail.innerHTML = renderRuleDetail(item);
-  bindActionButtons(detail);
-}
-
-function bindActionButtons(scope) {
-  (scope || document).querySelectorAll('[data-act]').forEach(btn => {
-    btn.onclick = (e) => {
-      e.stopPropagation();
-      const act = btn.dataset.act;
-      const id = btn.dataset.id;
-      if (act === 'del-mail') return deleteOne('mail', id);
-      if (act === 'del-hook') return deleteOne('hook', id);
-      if (act === 'del-rule') return deleteOne('rule', id);
-      if (act === 'edit-rule') return openRuleForm(id);
-      if (act === 'mail-mode') {
-        mailViewMode[id] = btn.dataset.mode;
-        renderDetail();
-      }
-    };
-  });
+  const html = state.tab === 'mail' ? renderMailDetail(item) : state.tab === 'hook' ? renderHookDetail(item) : renderRuleDetail(item);
+  panel.innerHTML = `<div class="detail-inner">${html}</div>`;
+  const f = $('mail-frame');
+  if (f) setupFrame(f);
 }
 
 function render() {
-  const thead = $('thead'), tbody = $('tbody'), empty = $('empty');
-  const isRule = kindState.current === 'rule';
+  const isRule = state.tab === 'rule';
   $('add-rule').hidden = !isRule;
-  $('livewrap').style.display = isRule ? 'none' : '';
-  if (!isRule) closeRuleForm();
-
-  if (!kindState.data.length) {
-    thead.innerHTML = '';
-    tbody.innerHTML = '';
-    empty.hidden = false;
-    empty.textContent = isRule
-      ? 'No rules yet — click "+ add rule" to define a mock response.'
-      : 'no captures yet — send mail to :1025 or POST to :7790';
-    renderDetail();
-    return;
-  }
-  empty.hidden = true;
-
-  if (kindState.current === 'mail') {
-    thead.innerHTML = '<tr><th>Time</th><th>From</th><th>Subject</th><th></th></tr>';
-    tbody.innerHTML = kindState.data.slice().reverse().map(renderMailRow).join('');
-  } else if (kindState.current === 'hook') {
-    thead.innerHTML = '<tr><th>Time</th><th>Method</th><th>Path</th><th></th></tr>';
-    tbody.innerHTML = kindState.data.slice().reverse().map(renderHookRow).join('');
-  } else {
-    thead.innerHTML = '<tr><th>Method</th><th>Path</th><th>Status</th><th></th></tr>';
-    tbody.innerHTML = kindState.data.slice().reverse().map(renderRuleRow).join('');
-  }
-
-  document.querySelectorAll('tr.row').forEach(tr => {
-    tr.onclick = (e) => {
-      if (e.target.closest('.actions')) return;
-      kindState.selected[kindState.current] = tr.dataset.id;
-      render();
-    };
-  });
-  bindActionButtons($('list-panel'));
+  KINDS.forEach(k => $('tab-' + k).classList.toggle('active', k === state.tab));
+  renderList();
   renderDetail();
+  renderCounts();
 }
+
+let renderQueued = false;
+function scheduleRender(listOnly) {
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(() => {
+    renderQueued = false;
+    renderList();
+    renderCounts();
+    // Only rebuild the detail if its item disappeared (keeps iframe + scroll).
+    const id = state.sel[state.tab];
+    if (!listOnly || (id && !current())) renderDetail();
+  });
+}
+
+// ---------- selection & navigation ----------
+
+function select(id, opts = {}) {
+  state.sel[state.tab] = id;
+  if (id) state.unread.delete(id);
+  history.replaceState(null, '', id ? `#${state.tab}/${encodeURIComponent(id)}` : `#${state.tab}`);
+  renderList();
+  renderDetail();
+  renderCounts();
+  $('detail-panel').scrollTop = 0;
+  if (opts.scroll !== false) {
+    const el = document.querySelector(`.row[data-id="${CSS.escape(id || '')}"]`);
+    if (el) el.scrollIntoView({ block: 'nearest' });
+  }
+}
+
+function switchTab(k, id) {
+  if (k !== state.tab) closeRuleForm();
+  state.tab = k;
+  if (id !== undefined) state.sel[k] = id;
+  history.replaceState(null, '', state.sel[k] ? `#${k}/${encodeURIComponent(state.sel[k])}` : `#${k}`);
+  if (state.sel[k]) state.unread.delete(state.sel[k]);
+  render();
+}
+
+function move(delta) {
+  const items = visible();
+  if (!items.length) return;
+  const i = items.findIndex(x => x.id === state.sel[state.tab]);
+  const j = i < 0 ? 0 : Math.max(0, Math.min(items.length - 1, i + delta));
+  select(items[j].id);
+}
+
+// ---------- actions ----------
 
 async function deleteOne(kind, id) {
-  // mail/hook = captured noise, delete silently. Rule = user-defined config, confirm.
   if (kind === 'rule' && !confirm('Delete this rule?')) return;
-  await fetch('/' + kind + '/' + id, { method: 'DELETE' });
-  if (kindState.selected[kind] === id) kindState.selected[kind] = null;
-  load();
-  refreshCounts();
-}
-
-async function load() {
-  try {
-    const res = await fetch('/' + kindState.current);
-    kindState.data = (await res.json()) || [];
-    $('cnt-' + kindState.current).textContent = kindState.data.length;
-    render();
-  } catch (e) {
-    console.error('load failed', e);
+  const res = await fetch(`/${kind}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  if (!res.ok && res.status !== 404) return toast('Delete failed: ' + res.status);
+  if (state.sel[kind] === id) {
+    const items = visible(), i = items.findIndex(x => x.id === id);
+    const next = items[i + 1] || items[i - 1];
+    state.sel[kind] = next ? next.id : null;
   }
+  applyEvent({ kind, op: 'delete', data: { id } });
+  render();
 }
 
-async function refreshCounts() {
-  try {
-    const [m, h, r] = await Promise.all([
-      fetch('/mail').then(r => r.json()),
-      fetch('/hook').then(r => r.json()),
-      fetch('/rule').then(r => r.json())
-    ]);
-    $('cnt-mail').textContent = (m||[]).length;
-    $('cnt-hook').textContent = (h||[]).length;
-    $('cnt-rule').textContent = (r||[]).length;
-  } catch (e) {}
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-act]');
+  if (t) {
+    const act = t.dataset.act, id = t.dataset.id;
+    if (act === 'copy') { e.preventDefault(); e.stopPropagation(); return copy(t.dataset.v); }
+    if (act === 'del') { e.stopPropagation(); return deleteOne(state.tab, id); }
+    if (act === 'edit-rule') return openRuleForm(id);
+    if (act === 'view') { state.view[id] = t.dataset.v; return renderDetail(); }
+    if (act === 'width') { state.width = t.dataset.v; return renderDetail(); }
+    if (act === 'params') { const k = t.dataset.k; state.openParams.has(k) ? state.openParams.delete(k) : state.openParams.add(k); return keepScroll(renderDetail); }
+    if (act === 'all-links') { state.allLinks.has(id) ? state.allLinks.delete(id) : state.allLinks.add(id); return keepScroll(renderDetail); }
+    if (act === 'curl') { const h = current(); return h && copy(curlFor(h)); }
+    if (act === 'goto-rule') { e.preventDefault(); return switchTab('rule', id); }
+    if (act === 'mock') { e.stopPropagation(); return openMock(t.dataset.m, t.dataset.v); }
+    if (act === 'toggle-group') { const p = t.dataset.v; state.collapsed.has(p) ? state.collapsed.delete(p) : state.collapsed.add(p); return renderList(); }
+    if (act === 'collapse-all') { state.data.hook.forEach(h => state.collapsed.add(h.path)); return renderList(); }
+    if (act === 'expand-all') { state.collapsed.clear(); return renderList(); }
+    if (act === 'group') { state.group = t.checked; lsSet('mh.group', state.group ? '1' : '0'); return renderList(); }
+    return;
+  }
+  const row = e.target.closest('.row');
+  if (row && row.closest('#list')) select(row.dataset.id, { scroll: false });
+});
+
+function keepScroll(fn) {
+  const p = $('detail-panel'), top = p.scrollTop;
+  fn();
+  p.scrollTop = top;
 }
 
-function switchTab(k) {
-  kindState.current = k;
-  ['mail','hook','rule'].forEach(t => $('tab-'+t).classList.toggle('active', t === k));
-  load();
-}
+document.addEventListener('keydown', e => {
+  const inField = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+  if (e.key === 'Escape') {
+    if (document.activeElement === $('search')) { $('search').value = ''; state.q = ''; renderList(); $('search').blur(); }
+    else if ($('rule-form').classList.contains('open')) closeRuleForm();
+    return;
+  }
+  if (inField || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === '/') { e.preventDefault(); $('search').focus(); $('search').select(); }
+  else if (e.key === 'ArrowDown' || e.key === 'j') { e.preventDefault(); move(1); }
+  else if (e.key === 'ArrowUp' || e.key === 'k') { e.preventDefault(); move(-1); }
+  else if (e.key === 'c') { const x = current(); if (x && x.codes && x.codes.length) copy(x.codes[0]); }
+  else if (e.key === 'o') {
+    const x = current(), l = x && (x.links || []).find(l => /^https?:/i.test(l.url));
+    if (l) window.open(l.url, '_blank', 'noopener,noreferrer');
+  }
+});
+
+$('search').addEventListener('input', e => { state.q = e.target.value; renderList(); });
 $('tab-mail').onclick = () => switchTab('mail');
 $('tab-hook').onclick = () => switchTab('hook');
 $('tab-rule').onclick = () => switchTab('rule');
-$('refresh').onclick = load;
+$('refresh').onclick = () => loadAll().then(render);
 $('clear').onclick = async () => {
-  const label = kindState.current === 'rule' ? 'rules' : kindState.current + ' captures';
-  if (!confirm('Clear all ' + label + '?')) return;
-  await fetch('/' + kindState.current, { method: 'DELETE' });
-  kindState.selected[kindState.current] = null;
-  load();
-  refreshCounts();
+  const kind = state.tab;
+  const label = kind === 'rule' ? 'rules' : kind + ' captures';
+  if (!confirm(`Clear all ${state.data[kind].length} ${label}?`)) return;
+  await fetch('/' + kind, { method: 'DELETE' });
+  applyEvent({ kind, op: 'clear' });
+  state.sel[kind] = null;
+  render();
 };
+window.addEventListener('resize', () => {
+  clearTimeout(window._rz);
+  window._rz = setTimeout(() => { const f = $('mail-frame'); if (f) { f.style.height = '50px'; fitFrame(f); } }, 150);
+});
 
-// ----- Rule form -----
-function openRuleForm(id) {
+// ---------- rule form ----------
+
+// Edit the rule that answers method+path, or start one prefilled for it.
+function openMock(method, path) {
+  const r = ruleFor(method, path);
+  if (r) return openRuleForm(r.id);
+  openRuleForm(null, { method, path });
+}
+
+function openRuleForm(id, pre = {}) {
   editingRuleId = id || null;
-  $('rule-form-title').textContent = id ? 'Edit rule' : 'New rule';
-  if (id) {
-    const r = kindState.data.find(x => x.id === id);
-    if (!r) return;
-    $('rf-method').value = (r.method && r.method !== '') ? r.method : '*';
-    $('rf-path').value = r.path || '';
-    $('rf-status').value = r.status || 200;
-    $('rf-delay').value = r.delay_ms || 0;
-    $('rf-headers').value = Object.entries(r.headers||{}).map(([k,v]) => `${k}: ${v}`).join('\n');
-    $('rf-body').value = r.body || '';
-  } else {
-    $('rf-method').value = 'POST';
-    $('rf-path').value = '';
-    $('rf-status').value = 200;
-    $('rf-delay').value = 0;
-    $('rf-headers').value = '';
-    $('rf-body').value = '';
-  }
+  const r = id ? state.data.rule.find(x => x.id === id) : null;
+  if (id && !r) return;
+  $('rule-form-title').textContent = id ? `Edit rule (${r.method || '*'} ${r.path})` : pre.path ? `Response for ${pre.method} ${pre.path}` : 'New rule';
+  $('rf-method').value = r ? (r.method || '*') : (pre.method || 'POST');
+  $('rf-path').value = r ? r.path || '' : (pre.path || '');
+  $('rf-status').value = r ? r.status || 200 : 200;
+  $('rf-delay').value = r ? r.delay_ms || 0 : 0;
+  $('rf-headers').value = r ? Object.entries(r.headers || {}).map(([k, v]) => `${k}: ${v}`).join('\n') : '';
+  $('rf-body').value = r ? r.body || '' : '';
   $('rule-form').classList.add('open');
-  setTimeout(() => $('rf-path').focus(), 30);
+  setTimeout(() => (pre.path ? $('rf-status') : $('rf-path')).focus(), 30);
 }
 function closeRuleForm() {
   $('rule-form').classList.remove('open');
@@ -478,47 +1003,78 @@ $('add-rule').onclick = () => openRuleForm(null);
 $('rf-cancel').onclick = closeRuleForm;
 $('rf-save').onclick = async () => {
   const path = $('rf-path').value.trim();
-  if (!path) { alert('Path is required. Use "*" for any.'); return; }
+  if (!path) { toast('Path is required. Use "*" for any.'); $('rf-path').focus(); return; }
   const headers = {};
   for (const line of $('rf-headers').value.split('\n')) {
     const idx = line.indexOf(':');
     if (idx < 0) continue;
-    const k = line.slice(0, idx).trim();
-    const v = line.slice(idx+1).trim();
+    const k = line.slice(0, idx).trim(), v = line.slice(idx + 1).trim();
     if (k) headers[k] = v;
   }
   const rule = {
-    method: $('rf-method').value,
-    path,
+    method: $('rf-method').value, path,
     status: parseInt($('rf-status').value, 10) || 200,
     delay_ms: parseInt($('rf-delay').value, 10) || 0,
-    headers,
-    body: $('rf-body').value
+    headers, body: $('rf-body').value,
   };
-  const opts = {
+  const res = await fetch(editingRuleId ? '/rule/' + encodeURIComponent(editingRuleId) : '/rule', {
     method: editingRuleId ? 'PUT' : 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(rule)
-  };
-  const url = editingRuleId ? '/rule/' + editingRuleId : '/rule';
-  const res = await fetch(url, opts);
-  if (!res.ok) {
-    const t = await res.text();
-    alert('Save failed: ' + res.status + ' ' + t);
-    return;
-  }
+    body: JSON.stringify(rule),
+  });
+  if (!res.ok) { toast('Save failed: ' + res.status + ' ' + (await res.text()).trim()); return; }
+  const saved = await res.json();
   closeRuleForm();
-  load();
-  refreshCounts();
+  await loadKind('rule');
+  if (state.tab === 'rule') state.sel.rule = saved.id;
+  else toast(`Saved: ${saved.method || '*'} ${saved.path} → ${saved.status}`);
+  render();
 };
 
-let liveCtrl = null;
+// ---------- data + live stream ----------
+
+async function loadKind(k) {
+  const res = await fetch('/' + k);
+  state.data[k] = (await res.json()) || [];
+}
+async function loadAll() {
+  try { await Promise.all(KINDS.map(loadKind)); }
+  catch (e) { console.error('load failed', e); }
+}
+
+function applyEvent(ev) {
+  const arr = state.data[ev.kind];
+  if (!arr) return;
+  if (!ev.op) {
+    if (arr.some(x => x.id === ev.data.id)) return;
+    arr.push(ev.data);
+    if (arr.length > CFG.cap) arr.splice(0, arr.length - CFG.cap);
+    if (state.sel[ev.kind] !== ev.data.id) state.unread.add(ev.data.id);
+  } else if (ev.op === 'delete') {
+    const i = arr.findIndex(x => x.id === ev.data.id);
+    if (i >= 0) arr.splice(i, 1);
+    state.unread.delete(ev.data.id);
+  } else if (ev.op === 'clear') {
+    arr.forEach(x => state.unread.delete(x.id));
+    arr.length = 0;
+  } else if (ev.op === 'change') {
+    // Rules only affect the rule and hook views; keep an open mail untouched.
+    loadKind(ev.kind).then(() => state.tab === 'mail' ? scheduleRender(true) : keepScroll(render));
+  }
+}
+
+let liveCtrl = null, liveGen = 0;
 async function startLive() {
   stopLive();
+  const gen = ++liveGen;
   liveCtrl = new AbortController();
-  $('livedot').classList.add('live');
+  let queue = null;
   try {
-    const res = await fetch('/tail?kind=all', { signal: liveCtrl.signal });
+    const res = await fetch('/tail?kind=all&ops=1', { signal: liveCtrl.signal });
+    $('livedot').classList.add('live');
+    // Resync after (re)connecting; buffer events that race the reload.
+    queue = [];
+    loadAll().then(() => { const q = queue; queue = null; q.forEach(applyEvent); render(); });
     const reader = res.body.getReader();
     const dec = new TextDecoder();
     let buf = '';
@@ -531,30 +1087,36 @@ async function startLive() {
         const line = buf.slice(0, nl);
         buf = buf.slice(nl + 1);
         if (!line.trim()) continue;
-        try {
-          const ev = JSON.parse(line);
-          if (ev.kind === kindState.current) load();
-          else refreshCounts();
-        } catch {}
+        let ev;
+        try { ev = JSON.parse(line); } catch { continue; }
+        if (queue) { queue.push(ev); continue; }
+        applyEvent(ev);
+        scheduleRender(true);
       }
     }
   } catch (e) {
-    if (e.name !== 'AbortError') console.error('tail closed', e);
+    if (e.name !== 'AbortError') console.warn('tail closed', e);
   } finally {
-    $('livedot').classList.remove('live');
-    // Auto-reconnect if user still wants live mode.
-    if ($('auto').checked) setTimeout(startLive, 1000);
+    if (gen === liveGen) {
+      $('livedot').classList.remove('live');
+      if ($('auto').checked) setTimeout(() => { if (gen === liveGen) startLive(); }, 1000);
+    }
   }
 }
 function stopLive() {
+  liveGen++;
   if (liveCtrl) { liveCtrl.abort(); liveCtrl = null; }
   $('livedot').classList.remove('live');
 }
 $('auto').onchange = e => e.target.checked ? startLive() : stopLive();
 
-load();
-refreshCounts();
-startLive();
+(async function init() {
+  const m = location.hash.match(/^#(mail|hook|rule)(?:\/(.+))?$/);
+  if (m) { state.tab = m[1]; if (m[2]) state.sel[m[1]] = decodeURIComponent(m[2]); }
+  await loadAll();
+  render();
+  startLive();
+})();
 </script>
 </body>
 </html>

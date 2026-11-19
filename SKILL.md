@@ -16,15 +16,15 @@ Not for: real mail delivery, TLS, persistence across restarts, multi-host.
 ## Lifecycle
 
 ```bash
-mailhook start            # background daemon (idempotent, self-heals orphans)
+mailhook start            # background daemon (idempotent)
 mailhook status
 mailhook stop
 ```
 
 Endpoints:
-- SMTP   `127.0.0.1:1025`
+- SMTP   `127.0.0.1:7725`
 - Hook   `127.0.0.1:7790` (any HTTP method)
-- API+UI `http://127.0.0.1:8091/`
+- API+UI `http://127.0.0.1:7791/`
 
 ## Core commands
 
@@ -39,15 +39,18 @@ mailhook mail clear && mailhook hook clear   # pre-test reset
 
 ## Key JSON fields
 
-`Mail`: `id`, `from`, `to[]`, `subject`, `headers{}`, `text`, `html`, `body`, `raw`
-`Hook`: `id`, `method`, `path`, `query`, `headers{}`, `body`, `remote`
+`Mail`: `id`, `from`, `to[]`, `subject`, `headers{}`, `text`, `html`, `body`, `raw`,
+`codes[]`, `links[{url,text}]`, `attachments[]`
+`Hook`: `id`, `method`, `path`, `query`, `headers{}`, `body`, `remote`, `status`,
+`rule`, `sms{to,from,text}`, `codes[]`, `links[]`
 
-## OTP extract
+## OTP / link extract
 
 ```bash
-mailhook mail list -j \
-  | jq -r '[.[] | select(.subject|test("OTP";"i"))] | last | .body' \
-  | grep -oE '[0-9]{4,8}' | head -1
+mailhook mail code              # first code in the newest mail (exit 1 if none)
+mailhook hook code              # same for the newest SMS webhook
+mailhook mail links | head -1   # first link, entities decoded
+mailhook mail list -j | jq -r '[.[] | select(.to[0]=="bob@x.test")] | last | .codes[0]'
 ```
 
 ## Mock response

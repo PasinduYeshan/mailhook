@@ -8,7 +8,10 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime"
+	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -20,7 +23,7 @@ var uiHTML []byte
 // Webhook receiver
 // ---------------------------------------------------------------------------
 
-func runHook(ctx context.Context, addr string, st *store) error {
+func runHook(ctx context.Context, ln net.Listener, st *store) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(http.MaxBytesReader(w, r.Body, 5<<20)) // 5 MiB cap
@@ -34,11 +37,21 @@ func runHook(ctx context.Context, addr string, st *store) error {
 			Headers: r.Header,
 			Body:    string(body),
 			Remote:  r.RemoteAddr,
+			Status:  http.StatusOK,
+		}
+		enrichHook(&h)
+
+		// Beeceptor-style: if a rule matches, serve its configured response.
+		rule := st.matchRule(r.Method, r.URL.Path)
+		if rule != nil {
+			h.Rule = rule.ID
+			if rule.Status != 0 {
+				h.Status = rule.Status
+			}
 		}
 		st.addHook(h)
 
-		// Beeceptor-style: if a rule matches, serve its configured response.
-		if rule := st.matchRule(r.Method, r.URL.Path); rule != nil {
+		if rule != nil {
 			if rule.DelayMs > 0 {
 				time.Sleep(time.Duration(rule.DelayMs) * time.Millisecond)
 			}
@@ -55,11 +68,7 @@ func runHook(ctx context.Context, addr string, st *store) error {
 			}
 			w.Header().Set("X-Mailhook-Id", h.ID)
 			w.Header().Set("X-Mailhook-Rule", rule.ID)
-			status := rule.Status
-			if status == 0 {
-				status = http.StatusOK
-			}
-			w.WriteHeader(status)
+			w.WriteHeader(h.Status)
 			io.WriteString(w, rule.Body)
 			return
 		}
@@ -72,7 +81,6 @@ func runHook(ctx context.Context, addr string, st *store) error {
 	})
 
 	srv := &http.Server{
-		Addr:              addr,
 		Handler:           mux,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
@@ -82,8 +90,8 @@ func runHook(ctx context.Context, addr string, st *store) error {
 		defer cancel()
 		srv.Shutdown(shCtx)
 	}()
-	log.Printf("hook  listening on %s", addr)
-	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	log.Printf("hook  listening on %s", ln.Addr())
+	if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 	return nil
@@ -93,16 +101,24 @@ func runHook(ctx context.Context, addr string, st *store) error {
 // Query API (also serves the Web UI)
 // ---------------------------------------------------------------------------
 
-func runAPI(ctx context.Context, addr string, st *store) error {
+func runAPI(ctx context.Context, ln net.Listener, cfg Config, st *store) error {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "ok")
 	})
+	page := strings.NewReplacer(
+		"{{SMTP}}", portOf(cfg.SMTPAddr),
+		"{{HOOK}}", portOf(cfg.HookAddr),
+		"{{API}}", portOf(cfg.APIAddr),
+		"{{SMTP_ADDR}}", localAddr(cfg.SMTPAddr),
+		"{{HOOK_URL}}", "http://"+localAddr(cfg.HookAddr),
+		"{{CAP}}", strconv.Itoa(cfg.Cap),
+	).Replace(string(uiHTML))
 	serveUI := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
-		w.Write(uiHTML)
+		io.WriteString(w, page)
 	}
 	mux.HandleFunc("GET /ui", serveUI)
 	mux.HandleFunc("GET /{$}", serveUI)
@@ -117,6 +133,38 @@ func runAPI(ctx context.Context, addr string, st *store) error {
 			return
 		}
 		http.NotFound(w, r)
+	})
+	mux.HandleFunc("GET /mail/{id}/eml", func(w http.ResponseWriter, r *http.Request) {
+		m, ok := st.mailByID(r.PathValue("id"))
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "message/rfc822")
+		w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": m.ID + ".eml"}))
+		io.WriteString(w, m.Raw)
+	})
+	mux.HandleFunc("GET /mail/{id}/part/{n}", func(w http.ResponseWriter, r *http.Request) {
+		m, ok := st.mailByID(r.PathValue("id"))
+		n, err := strconv.Atoi(r.PathValue("n"))
+		if !ok || err != nil || n < 0 || n >= len(m.parts) {
+			http.NotFound(w, r)
+			return
+		}
+		a := m.Attachments[n]
+		disp := "inline"
+		if r.URL.Query().Has("download") {
+			disp = "attachment"
+		}
+		if a.Filename != "" {
+			disp = mime.FormatMediaType(disp, map[string]string{"filename": a.Filename})
+		}
+		w.Header().Set("Content-Type", a.ContentType)
+		w.Header().Set("Content-Disposition", disp)
+		// Parts come from untrusted mail: never let them run script on this origin.
+		w.Header().Set("Content-Security-Policy", "sandbox")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Write(m.parts[n])
 	})
 	mux.HandleFunc("DELETE /mail", func(w http.ResponseWriter, r *http.Request) {
 		st.clearMails()
@@ -208,6 +256,7 @@ func runAPI(ctx context.Context, addr string, st *store) error {
 	// --- live tail (NDJSON) ---
 	mux.HandleFunc("GET /tail", func(w http.ResponseWriter, r *http.Request) {
 		kind := r.URL.Query().Get("kind")
+		ops := r.URL.Query().Get("ops") == "1"
 		flusher, ok := w.(http.Flusher)
 		if !ok {
 			http.Error(w, "streaming unsupported", http.StatusInternalServerError)
@@ -217,7 +266,7 @@ func runAPI(ctx context.Context, addr string, st *store) error {
 		w.WriteHeader(http.StatusOK)
 		flusher.Flush()
 
-		ch, cancel := st.subscribe()
+		ch, cancel := st.subscribe(ops)
 		defer cancel()
 		enc := json.NewEncoder(w)
 
@@ -241,7 +290,6 @@ func runAPI(ctx context.Context, addr string, st *store) error {
 	})
 
 	srv := &http.Server{
-		Addr:              addr,
 		Handler:           mux,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
@@ -251,11 +299,31 @@ func runAPI(ctx context.Context, addr string, st *store) error {
 		defer cancel()
 		srv.Shutdown(shCtx)
 	}()
-	log.Printf("api   listening on %s", addr)
-	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	log.Printf("api   listening on %s", ln.Addr())
+	if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 	return nil
+}
+
+// localAddr swaps a wildcard host for loopback so the address is dialable.
+func localAddr(addr string) string {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return addr
+	}
+	if host == "" || host == "0.0.0.0" || host == "::" {
+		host = "127.0.0.1"
+	}
+	return net.JoinHostPort(host, port)
+}
+
+// portOf returns ":port" for display.
+func portOf(addr string) string {
+	if _, p, err := net.SplitHostPort(addr); err == nil {
+		return ":" + p
+	}
+	return addr
 }
 
 func writeJSON(w http.ResponseWriter, v any) {

@@ -13,7 +13,7 @@ from_address = "is@test.local"
 username = ""
 password = ""
 hostname = "127.0.0.1"
-port = 1025
+port = 7725
 enable_start_tls = false
 enable_authentication = false
 ```
@@ -26,7 +26,7 @@ mailhook mail list
 mailhook mail show <id>          # full JSON incl. text / html parts
 ```
 
-Or open `http://127.0.0.1:8091/` and click **Mail**.
+Or open `http://127.0.0.1:7791/` and click **Mail**.
 
 ## Custom SMS / notification webhook
 
@@ -53,17 +53,25 @@ mailhook rule add -m POST -p /sms/send -s 201 \
 
 ## Reading the OTP back
 
-For automated tests, grab the OTP from the captured mail body:
+For automated tests, take the code or link mailhook already extracted:
 
 ```bash
-otp=$(mailhook mail list -j \
-        | jq -r '[.[] | select(.subject|test("OTP";"i"))] | last | .body' \
-        | grep -oE '[0-9]{4,8}' | head -1)
-echo "OTP = $otp"
+otp=$(mailhook mail code)               # newest mail
+sms_otp=$(mailhook hook code)           # newest SMS webhook
+link=$(mailhook mail links | head -1)   # e.g. confirmation / reset link
 ```
 
-If the IS template ships HTML-only mail, the digits are still in the
-decoded `.html` field (or in the iframe rendered in the UI).
+This works for HTML-only templates too. To pick a specific mail, filter
+the JSON:
+
+```bash
+mailhook mail list -j \
+  | jq -r '[.[] | select(.to[0]=="bob@example.com")] | last | .codes[0]'
+```
+
+In the UI, codes show as chips (click to copy, or press `c`), and each
+link lists its query parameters (`confirmation`, `code`, `inviteToken`, …)
+with copy buttons.
 
 ## Pre-test reset
 
@@ -82,7 +90,7 @@ mailhook hook clear
 | Symptom                                | Cause / fix                                                                                |
 | -------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `mailhook mail list` shows nothing     | IS pack wasn't restarted after `deployment.toml` edit. Restart and trigger the flow again. |
-| Port `1025` already in use             | macOS `ssh` sometimes squats on it. Run `mailhook serve --smtp 127.0.0.1:1026`.            |
+| `address already in use` on start      | Another tool owns the port. Pick a free one, e.g. `mailhook restart --smtp 2525`.          |
 | HTML mail looks like raw `--BOUNDARY…` | Older binary without multipart support. Reinstall.                                         |
 | Captures get dropped under load        | Default ring-buffer is 500/stream. Bump with `mailhook start --cap 5000`.                  |
 
@@ -94,7 +102,7 @@ since there's no auth:
 
 ```bash
 mailhook start \
-  --smtp 0.0.0.0:1025 \
+  --smtp 0.0.0.0:7725 \
   --hook 0.0.0.0:7790 \
-  --api  127.0.0.1:8091   # keep API local
+  --api  127.0.0.1:7791   # keep API local
 ```

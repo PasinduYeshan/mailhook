@@ -13,18 +13,14 @@ import (
 	"mime/quotedprintable"
 	"net"
 	"net/mail"
+	"net/textproto"
 	"strings"
 	"time"
 )
 
-func runSMTP(ctx context.Context, addr string, st *store) error {
-	var lc net.ListenConfig
-	ln, err := lc.Listen(ctx, "tcp", addr)
-	if err != nil {
-		return fmt.Errorf("smtp listen: %w", err)
-	}
+func runSMTP(ctx context.Context, ln net.Listener, st *store) error {
 	go func() { <-ctx.Done(); ln.Close() }()
-	log.Printf("smtp  listening on %s", addr)
+	log.Printf("smtp  listening on %s", ln.Addr())
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -141,18 +137,27 @@ func parseMail(from string, to []string, raw string) Mail {
 		Headers: map[string]string{},
 	}
 	msg, err := mail.ReadMessage(strings.NewReader(raw))
-	if err != nil {
+	if err != nil || len(msg.Header) == 0 {
 		m.Body = raw
+		m.Text = raw
+		enrichMail(&m)
 		return m
 	}
 	for k, v := range msg.Header {
+		for i := range v {
+			v[i] = decodeMIMEHeader(v[i])
+		}
 		m.Headers[k] = strings.Join(v, ", ")
 	}
-	m.Subject = decodeMIMEHeader(msg.Header.Get("Subject"))
+	m.Subject = m.Headers["Subject"]
 
-	ct := msg.Header.Get("Content-Type")
-	mediaType, params, _ := mime.ParseMediaType(ct)
-	collectMIMEParts(msg.Body, mediaType, params, msg.Header.Get("Content-Transfer-Encoding"), &m)
+	mediaType, params, _ := mime.ParseMediaType(msg.Header.Get("Content-Type"))
+	part := mimePart{
+		header:    textproto.MIMEHeader(msg.Header),
+		mediaType: mediaType,
+		params:    params,
+	}
+	collectMIMEParts(msg.Body, part, &m)
 
 	switch {
 	case m.Text != "":
@@ -160,54 +165,67 @@ func parseMail(from string, to []string, raw string) Mail {
 	case m.HTML != "":
 		m.Body = m.HTML
 	}
-	if m.Body == "" {
-		body, _ := io.ReadAll(msg.Body)
-		m.Body = string(body)
-	}
+	enrichMail(&m)
 	return m
 }
 
-// collectMIMEParts walks one part (recursing into multipart trees) and fills
-// m.Text / m.HTML with the first matching part of each type.
-func collectMIMEParts(body io.Reader, mediaType string, params map[string]string, transferEnc string, m *Mail) {
-	if strings.HasPrefix(mediaType, "multipart/") {
-		boundary := params["boundary"]
+type mimePart struct {
+	header    textproto.MIMEHeader
+	mediaType string
+	params    map[string]string
+}
+
+// collectMIMEParts walks one part, recursing into multipart trees. The first
+// text/plain and text/html bodies fill m.Text / m.HTML; every other leaf is
+// kept as an attachment.
+func collectMIMEParts(body io.Reader, p mimePart, m *Mail) {
+	if strings.HasPrefix(p.mediaType, "multipart/") {
+		boundary := p.params["boundary"]
 		if boundary == "" {
 			return
 		}
 		mr := multipart.NewReader(body, boundary)
 		for {
-			p, err := mr.NextPart()
+			sub, err := mr.NextPart()
 			if err != nil {
 				return
 			}
-			pCT := p.Header.Get("Content-Type")
-			pMediaType, pParams, _ := mime.ParseMediaType(pCT)
-			pEnc := p.Header.Get("Content-Transfer-Encoding")
-			if strings.HasPrefix(pMediaType, "multipart/") {
-				collectMIMEParts(p, pMediaType, pParams, pEnc, m)
-				continue
-			}
-			raw, _ := io.ReadAll(p)
-			decoded := decodeTransfer(pEnc, raw)
-			switch {
-			case strings.HasPrefix(pMediaType, "text/html") && m.HTML == "":
-				m.HTML = string(decoded)
-			case strings.HasPrefix(pMediaType, "text/plain") && m.Text == "":
-				m.Text = string(decoded)
-			}
+			mt, params, _ := mime.ParseMediaType(sub.Header.Get("Content-Type"))
+			collectMIMEParts(sub, mimePart{header: sub.Header, mediaType: mt, params: params}, m)
 		}
 	}
-	// Single-part body.
+
 	raw, _ := io.ReadAll(body)
-	decoded := decodeTransfer(transferEnc, raw)
-	text := string(decoded)
-	switch {
-	case strings.HasPrefix(mediaType, "text/html"):
-		m.HTML = text
-	case strings.HasPrefix(mediaType, "text/plain"), mediaType == "":
-		m.Text = text
+	data := decodeTransfer(p.header.Get("Content-Transfer-Encoding"), raw)
+	disp, dparams, _ := mime.ParseMediaType(p.header.Get("Content-Disposition"))
+	filename := dparams["filename"]
+	if filename == "" {
+		filename = p.params["name"]
 	}
+	filename = decodeMIMEHeader(filename)
+	isBody := disp != "attachment" && filename == ""
+
+	switch {
+	case isBody && (p.mediaType == "text/html") && m.HTML == "":
+		m.HTML = textOf(data, p.params)
+		return
+	case isBody && (p.mediaType == "text/plain" || p.mediaType == "") && m.Text == "":
+		m.Text = textOf(data, p.params)
+		return
+	}
+	ct := p.mediaType
+	if ct == "" {
+		ct = "text/plain"
+	}
+	m.Attachments = append(m.Attachments, Attachment{
+		Index:       len(m.parts),
+		Filename:    filename,
+		ContentType: ct,
+		Size:        len(data),
+		ContentID:   strings.Trim(p.header.Get("Content-Id"), "<> "),
+		Inline:      disp == "inline" || (disp == "" && p.header.Get("Content-Id") != ""),
+	})
+	m.parts = append(m.parts, data)
 }
 
 func decodeTransfer(enc string, body []byte) []byte {
@@ -226,13 +244,31 @@ func decodeTransfer(enc string, body []byte) []byte {
 		if decoded, err := base64.StdEncoding.DecodeString(cleaned); err == nil {
 			return decoded
 		}
+		if decoded, err := base64.RawStdEncoding.DecodeString(strings.TrimRight(cleaned, "=")); err == nil {
+			return decoded
+		}
 	}
 	return body
 }
 
+var wordDecoder = &mime.WordDecoder{
+	CharsetReader: func(cs string, in io.Reader) (io.Reader, error) {
+		if !knownCharset(cs) {
+			return nil, fmt.Errorf("unsupported charset %q", cs)
+		}
+		b, err := io.ReadAll(in)
+		if err != nil {
+			return nil, err
+		}
+		return strings.NewReader(toUTF8(b, cs)), nil
+	},
+}
+
 func decodeMIMEHeader(s string) string {
-	dec := new(mime.WordDecoder)
-	if out, err := dec.DecodeHeader(s); err == nil {
+	if !strings.Contains(s, "=?") {
+		return s
+	}
+	if out, err := wordDecoder.DecodeHeader(s); err == nil {
 		return out
 	}
 	return s

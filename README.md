@@ -5,13 +5,20 @@ deps. Built for testing WSO2 IS pack flows that send mail (OTP, password
 reset) or POST to a notification endpoint (SMS, custom HTTP), but useful
 for any app that emits SMTP or webhooks.
 
-- Catches outbound SMTP on `127.0.0.1:1025` (no auth, no TLS, local-only).
+- Catches outbound SMTP on `127.0.0.1:7725` (no auth, no TLS, local-only).
 - Catches any HTTP method on `127.0.0.1:7790` — captures stay in memory.
 - Optional per-`method`+`path` mock responses (Beeceptor-style).
-- Web UI on `127.0.0.1:8091` and a JSON API + live NDJSON tail.
+- Pulls out what you test for: one-time codes, links (with query params),
+  attachments, and the SMS text/recipient from JSON, form, XML or plain
+  bodies (Twilio, Vonage, Infobip, WSO2 IS custom provider, …).
+- Web UI on `127.0.0.1:7791`: rendered mail with working links and inline
+  images, hooks grouped by path with their mock response, search, live
+  updates. Plus a JSON API and a live NDJSON tail.
 - ~6 MB binary, ~12 MB RSS, ~0% idle CPU.
 
-![mailhook web UI](docs/assets/mailhook.png)
+![mailhook mail view: links with query params, rendered preview](docs/assets/mailhook.png)
+
+![mailhook hooks view: grouped by path, SMS and OTP pulled out](docs/assets/mailhook-hooks.png)
 
 ## Install
 
@@ -59,10 +66,10 @@ rm -rf "$HOME/.local/var/mailhook"             # optional: remove logs + pidfile
 
 ```bash
 mailhook start                     # background daemon
-open http://127.0.0.1:8091/        # web UI
+open http://127.0.0.1:7791/        # web UI
 
 # Send mail to the catcher.
-swaks --server localhost:1025 \
+swaks --server localhost:7725 \
       --from is@test.local --to user@example.com \
       --header "Subject: OTP 482913" --body "Code: 482913"
 
@@ -82,13 +89,13 @@ mailhook stop                      # when done
 | Command                | What it does                                      |
 | ---------------------- | ------------------------------------------------- |
 | `mailhook start`       | start daemon in background                        |
-| `mailhook stop`        | stop daemon, reap orphan processes                |
+| `mailhook stop`        | stop this daemon (`--all`: every mailhook serve)  |
 | `mailhook restart`     | stop then start                                   |
 | `mailhook status`      | show pid, RSS, CPU                                |
 | `mailhook logs`        | `tail -f` the daemon log                          |
 | `mailhook serve`       | run in the foreground                             |
-| `mailhook mail …`      | list / show / delete captured mail                |
-| `mailhook hook …`      | list / show / delete captured webhook requests    |
+| `mailhook mail …`      | list / show / code / links / delete captured mail |
+| `mailhook hook …`      | list / show / code / links / delete webhook hits  |
 | `mailhook rule …`      | add / list / update / delete mock-response rules  |
 | `mailhook tail`        | live NDJSON stream of new captures                |
 

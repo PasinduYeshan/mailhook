@@ -11,16 +11,31 @@ import (
 
 // Mail is a captured SMTP message after MIME parsing.
 type Mail struct {
-	ID      string            `json:"id"`
-	Time    time.Time         `json:"time"`
-	From    string            `json:"from"`
-	To      []string          `json:"to"`
-	Subject string            `json:"subject"`
-	Headers map[string]string `json:"headers"`
-	Body    string            `json:"body"`           // preferred display body (text if present, else html)
-	Text    string            `json:"text,omitempty"` // text/plain part (decoded)
-	HTML    string            `json:"html,omitempty"` // text/html part (decoded)
-	Raw     string            `json:"raw"`
+	ID          string            `json:"id"`
+	Time        time.Time         `json:"time"`
+	From        string            `json:"from"` // envelope MAIL FROM
+	To          []string          `json:"to"`   // envelope RCPT TO (includes Bcc)
+	Subject     string            `json:"subject"`
+	Headers     map[string]string `json:"headers"`        // decoded; repeated keys joined
+	Body        string            `json:"body"`           // preferred display body (text if present, else html)
+	Text        string            `json:"text,omitempty"` // text/plain part (decoded)
+	HTML        string            `json:"html,omitempty"` // text/html part (decoded)
+	Raw         string            `json:"raw"`
+	Attachments []Attachment      `json:"attachments,omitempty"`
+	Links       []Link            `json:"links,omitempty"` // URLs in the body, anchors first
+	Codes       []string          `json:"codes,omitempty"` // likely one-time codes
+
+	parts [][]byte // attachment bytes, indexed like Attachments
+}
+
+// Attachment describes a non-body MIME part; fetch it at /mail/{id}/part/{index}.
+type Attachment struct {
+	Index       int    `json:"index"`
+	Filename    string `json:"filename,omitempty"`
+	ContentType string `json:"content_type"`
+	Size        int    `json:"size"`
+	ContentID   string `json:"content_id,omitempty"`
+	Inline      bool   `json:"inline,omitempty"`
 }
 
 // Hook is a captured HTTP request.
@@ -33,6 +48,11 @@ type Hook struct {
 	Headers map[string][]string `json:"headers"`
 	Body    string              `json:"body"`
 	Remote  string              `json:"remote"`
+	Status  int                 `json:"status,omitempty"` // status mailhook answered with
+	Rule    string              `json:"rule,omitempty"`   // id of the rule that answered
+	SMS     *SMS                `json:"sms,omitempty"`    // message, if the body looks like one
+	Links   []Link              `json:"links,omitempty"`
+	Codes   []string            `json:"codes,omitempty"`
 }
 
 // Rule is a Beeceptor-style mock response. Incoming hook requests matching
@@ -53,8 +73,11 @@ type Rule struct {
 }
 
 // Event is the wire format used by /tail and the in-process pub/sub bus.
+// Captures have no Op. Ops ("delete", "clear", "change") only reach
+// subscribers that ask for them (/tail?ops=1), so older readers never see them.
 type Event struct {
-	Kind string          `json:"kind"` // "mail" | "hook"
+	Kind string          `json:"kind"` // "mail" | "hook" | "rule"
+	Op   string          `json:"op,omitempty"`
 	Data json.RawMessage `json:"data"`
 }
 
@@ -65,13 +88,13 @@ type store struct {
 	hooks    []Hook
 	rules    []Rule
 	capacity int
-	subs     map[chan Event]struct{}
+	subs     map[chan Event]bool // value: wants ops
 }
 
 func newStore(capacity int) *store {
 	return &store{
 		capacity: capacity,
-		subs:     map[chan Event]struct{}{},
+		subs:     map[chan Event]bool{},
 	}
 }
 
@@ -110,17 +133,27 @@ func (s *store) mailByID(id string) (Mail, bool) {
 
 func (s *store) deleteMail(id string) bool {
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	ok := false
 	for i, m := range s.mails {
 		if m.ID == id {
 			s.mails = append(s.mails[:i], s.mails[i+1:]...)
-			return true
+			ok = true
+			break
 		}
 	}
-	return false
+	s.mu.Unlock()
+	if ok {
+		s.publishOp("mail", "delete", id)
+	}
+	return ok
 }
 
-func (s *store) clearMails() { s.mu.Lock(); s.mails = nil; s.mu.Unlock() }
+func (s *store) clearMails() {
+	s.mu.Lock()
+	s.mails = nil
+	s.mu.Unlock()
+	s.publishOp("mail", "clear", "")
+}
 
 // --- hook ---
 
@@ -155,21 +188,32 @@ func (s *store) hookByID(id string) (Hook, bool) {
 
 func (s *store) deleteHook(id string) bool {
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	ok := false
 	for i, h := range s.hooks {
 		if h.ID == id {
 			s.hooks = append(s.hooks[:i], s.hooks[i+1:]...)
-			return true
+			ok = true
+			break
 		}
 	}
-	return false
+	s.mu.Unlock()
+	if ok {
+		s.publishOp("hook", "delete", id)
+	}
+	return ok
 }
 
-func (s *store) clearHooks() { s.mu.Lock(); s.hooks = nil; s.mu.Unlock() }
+func (s *store) clearHooks() {
+	s.mu.Lock()
+	s.hooks = nil
+	s.mu.Unlock()
+	s.publishOp("hook", "clear", "")
+}
 
 // --- rule ---
 
 func (s *store) addRule(r Rule) Rule {
+	defer s.publishOp("rule", "change", "")
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	r.ID = newID()
@@ -182,6 +226,7 @@ func (s *store) addRule(r Rule) Rule {
 }
 
 func (s *store) updateRule(r Rule) bool {
+	defer s.publishOp("rule", "change", "")
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for i, existing := range s.rules {
@@ -198,6 +243,7 @@ func (s *store) updateRule(r Rule) bool {
 }
 
 func (s *store) deleteRule(id string) bool {
+	defer s.publishOp("rule", "change", "")
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for i, r := range s.rules {
@@ -209,7 +255,12 @@ func (s *store) deleteRule(id string) bool {
 	return false
 }
 
-func (s *store) clearRules() { s.mu.Lock(); s.rules = nil; s.mu.Unlock() }
+func (s *store) clearRules() {
+	s.mu.Lock()
+	s.rules = nil
+	s.mu.Unlock()
+	s.publishOp("rule", "change", "")
+}
 
 func (s *store) ruleList() []Rule {
 	s.mu.RLock()
@@ -268,10 +319,10 @@ func pathMatches(pattern, actual string) bool {
 
 // --- pub/sub ---
 
-func (s *store) subscribe() (chan Event, func()) {
-	ch := make(chan Event, 32)
+func (s *store) subscribe(ops bool) (chan Event, func()) {
+	ch := make(chan Event, 64)
 	s.mu.Lock()
-	s.subs[ch] = struct{}{}
+	s.subs[ch] = ops
 	s.mu.Unlock()
 	cancel := func() {
 		s.mu.Lock()
@@ -289,9 +340,20 @@ func (s *store) publish(kind string, payload any) {
 	if err != nil {
 		return
 	}
-	e := Event{Kind: kind, Data: b}
+	s.send(Event{Kind: kind, Data: b})
+}
+
+func (s *store) publishOp(kind, op, id string) {
+	b, _ := json.Marshal(map[string]string{"id": id})
+	s.send(Event{Kind: kind, Op: op, Data: b})
+}
+
+func (s *store) send(e Event) {
 	s.mu.RLock()
-	for c := range s.subs {
+	for c, ops := range s.subs {
+		if e.Op != "" && !ops {
+			continue
+		}
 		select {
 		case c <- e:
 		default:

@@ -23,7 +23,7 @@ install: build
 	  *) echo "WARNING: $(INSTALL_DIR) is not on PATH. Add this to your shell rc:"; \
 	     echo "         export PATH=\"$(INSTALL_DIR):\$$PATH\"" ;; \
 	esac
-	@echo "next:  mailhook start     # then open http://127.0.0.1:8091/"
+	@echo "next:  mailhook start     # then open http://127.0.0.1:7791/"
 
 reinstall: uninstall install
 

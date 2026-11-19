@@ -1,7 +1,7 @@
 # CLI reference
 
-All subcommands ultimately talk to the Query API on `127.0.0.1:8091` (or
-whatever `MAILHOOK_API` points to). `serve` and the daemon commands are the
+All subcommands ultimately talk to the Query API of the running instance
+(`127.0.0.1:7791` by default, or whatever `MAILHOOK_API` points to). `serve` and the daemon commands are the
 exception — they manage the process itself.
 
 Exit codes: `0` ok · `1` runtime error · `2` usage error.
@@ -10,9 +10,9 @@ Exit codes: `0` ok · `1` runtime error · `2` usage error.
 
 ```
 mailhook start    [serve flags]   start in background, write pidfile
-mailhook stop                     stop background daemon (+ reap orphans)
-mailhook restart  [serve flags]   stop then start
-mailhook status                   show pid, RSS, CPU
+mailhook stop    [--all]          stop this daemon; --all also stops other mailhook serve processes
+mailhook restart  [serve flags]   stop then start (keeps current ports unless overridden)
+mailhook status                   show pid, RSS, CPU, ports
 mailhook logs                     tail -f the daemon log
 mailhook serve    [flags]         run in foreground (called by `start`)
 ```
@@ -21,22 +21,38 @@ mailhook serve    [flags]         run in foreground (called by `start`)
 
 | Flag         | Default              | Description                                  |
 | ------------ | -------------------- | -------------------------------------------- |
-| `--smtp`     | `127.0.0.1:1025`     | SMTP listen address                          |
-| `--hook`     | `127.0.0.1:7790`     | Webhook receiver listen address              |
-| `--api`      | `127.0.0.1:8091`     | Query API + Web UI listen address            |
+| `--smtp`     | `127.0.0.1:7725`     | SMTP listen address or bare port             |
+| `--hook`     | `127.0.0.1:7790`     | Webhook receiver listen address or bare port |
+| `--api`      | `127.0.0.1:7791`     | Query API + Web UI listen address or bare port |
 | `--cap`      | `500`                | Ring-buffer capacity per stream (mail/hook)  |
+
+A bare port binds to `127.0.0.1`, so `--smtp 2525` means `127.0.0.1:2525`.
+Busy ports fail fast with the conflicting address in the error. The running
+instance's ports are saved to `run/mailhook.json` in the state dir; `status`
+and the inspection commands read them, so no extra flags are needed later.
+
+```
+mailhook start --smtp 2525 --hook 9790   # custom ports
+mailhook restart --api 9791              # change one port, keep the rest
+```
 
 ## Mail
 
 ```
 mailhook mail list   [-j]
 mailhook mail show   <id>
+mailhook mail code   [id]
+mailhook mail links  [id]
 mailhook mail delete <id>
 mailhook mail clear
 ```
 
 - `list` prints a table; `-j` emits JSON.
 - `show` always pretty-prints JSON.
+- `code` prints the first one-time code of the mail (newest if no id);
+  exits `1` with `no code found` if there is none.
+- `links` prints every URL in the body, one per line, with HTML entities
+  decoded (ready for `curl`).
 - `delete` and `clear` print nothing on success, exit `1` on unknown id.
 
 ## Hook
@@ -44,9 +60,15 @@ mailhook mail clear
 ```
 mailhook hook list   [-j]
 mailhook hook show   <id>
+mailhook hook code   [id]
+mailhook hook links  [id]
 mailhook hook delete <id>
 mailhook hook clear
 ```
+
+`list` shows the status mailhook answered and the detected SMS text
+(`to: text`). `code` / `links` work like the mail versions, on the SMS
+text of the hook.
 
 ## Rule (mock responses)
 
@@ -93,14 +115,18 @@ Long-lived. Each event prints one line:
 
 | Variable        | Default                       | Purpose                                |
 | --------------- | ----------------------------- | -------------------------------------- |
-| `MAILHOOK_API`  | `http://127.0.0.1:8091`       | Override the API URL the CLI talks to. |
+| `MAILHOOK_API`  | `http://127.0.0.1:7791`       | Override the API URL the CLI talks to. |
 | `MAILHOOK_DIR`  | `$HOME/.local/var/mailhook`   | Override pid + log directory.          |
 
 ## Agent flow examples
 
 ```bash
-# Extract the most recent OTP from mail body.
-mailhook mail list -j | jq -r '.[-1].body' | grep -oE '[0-9]{4,8}' | head -1
+# OTP from the newest mail / SMS webhook.
+mailhook mail code
+mailhook hook code
+
+# Follow the reset / confirmation link from the newest mail.
+curl -sk "$(mailhook mail links | head -1)"
 
 # Wait for the next webhook on /sms/send and print its body.
 mailhook tail -j -t hook \

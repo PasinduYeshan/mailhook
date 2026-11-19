@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,6 +15,7 @@ import (
 	"syscall"
 	"text/tabwriter"
 
+	"github.com/PasinduYeshan/mailhook/internal/daemon"
 	"github.com/PasinduYeshan/mailhook/internal/server"
 )
 
@@ -24,11 +26,20 @@ import (
 func Serve(args []string) error {
 	fs := flag.NewFlagSet("serve", flag.ExitOnError)
 	cfg := server.Config{}
-	fs.StringVar(&cfg.SMTPAddr, "smtp", server.DefaultSMTPAddr, "SMTP listen address")
-	fs.StringVar(&cfg.HookAddr, "hook", server.DefaultHookAddr, "Webhook receiver listen address")
-	fs.StringVar(&cfg.APIAddr, "api", server.DefaultAPIAddr, "Query API listen address")
+	fs.StringVar(&cfg.SMTPAddr, "smtp", server.DefaultSMTPAddr, "SMTP listen address or port")
+	fs.StringVar(&cfg.HookAddr, "hook", server.DefaultHookAddr, "Webhook receiver listen address or port")
+	fs.StringVar(&cfg.APIAddr, "api", server.DefaultAPIAddr, "Query API listen address or port")
 	fs.IntVar(&cfg.Cap, "cap", server.DefaultCap, "Per-stream ring-buffer capacity")
 	fs.Parse(args)
+	if fs.NArg() > 0 {
+		return fmt.Errorf("unexpected argument %q (did you mean --smtp/--hook/--api %s?)", fs.Arg(0), fs.Arg(0))
+	}
+	cfg.OnReady = func(c server.Config) {
+		if err := daemon.WriteRuntime(c); err != nil {
+			log.Printf("warn: runtime file: %v", err)
+		}
+	}
+	defer daemon.RemoveRuntime()
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
@@ -41,7 +52,7 @@ func Serve(args []string) error {
 
 func Mail(args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: mailhook mail {list|show <id>|delete <id>|clear}")
+		return errors.New("usage: mailhook mail {list|show <id>|code [id]|links [id]|delete <id>|clear}")
 	}
 	switch args[0] {
 	case "list", "ls":
@@ -63,6 +74,12 @@ func Mail(args []string) error {
 				strings.Join(m.To, ","), truncate(m.Subject, 60))
 		}
 		return tw.Flush()
+	case "code", "links":
+		var m server.Mail
+		if err := latestOr("/mail", args[1:], &m); err != nil {
+			return err
+		}
+		return printExtract(args[0], m.Codes, m.Links)
 	case "show":
 		if len(args) < 2 {
 			return errors.New("usage: mailhook mail show <id>")
@@ -91,7 +108,7 @@ func Mail(args []string) error {
 
 func Hook(args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: mailhook hook {list|show <id>|delete <id>|clear}")
+		return errors.New("usage: mailhook hook {list|show <id>|code [id]|links [id]|delete <id>|clear}")
 	}
 	switch args[0] {
 	case "list", "ls":
@@ -106,13 +123,26 @@ func Hook(args []string) error {
 			return json.NewEncoder(os.Stdout).Encode(hooks)
 		}
 		tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintln(tw, "ID\tTIME\tMETHOD\tPATH\tQUERY\tBYTES")
+		fmt.Fprintln(tw, "ID\tTIME\tMETHOD\tPATH\tSTATUS\tBYTES\tMESSAGE")
 		for _, h := range hooks {
-			fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%d\n",
+			msg := ""
+			if h.SMS != nil {
+				msg = h.SMS.Text
+				if h.SMS.To != "" {
+					msg = h.SMS.To + ": " + msg
+				}
+			}
+			fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%d\t%d\t%s\n",
 				h.ID, h.Time.Local().Format("15:04:05"), h.Method,
-				truncate(h.Path, 40), truncate(h.Query, 30), len(h.Body))
+				truncate(h.Path, 40), h.Status, len(h.Body), truncate(oneLine(msg), 60))
 		}
 		return tw.Flush()
+	case "code", "links":
+		var h server.Hook
+		if err := latestOr("/hook", args[1:], &h); err != nil {
+			return err
+		}
+		return printExtract(args[0], h.Codes, h.Links)
 	case "show":
 		if len(args) < 2 {
 			return errors.New("usage: mailhook hook show <id>")
@@ -312,4 +342,37 @@ func Tail(args []string) error {
 				h.Time.Local().Format("15:04:05"), h.ID, h.Method, h.Path, len(h.Body))
 		}
 	}
+}
+
+// latestOr fetches the capture named in args, or the newest one.
+func latestOr(list string, args []string, out any) error {
+	if len(args) > 0 {
+		return httpGet(list+"/"+args[0], out)
+	}
+	var all []json.RawMessage
+	if err := httpGet(list, &all); err != nil {
+		return err
+	}
+	if len(all) == 0 {
+		return errors.New("nothing captured yet")
+	}
+	return json.Unmarshal(all[len(all)-1], out)
+}
+
+// printExtract prints the first code, or every link URL, one per line.
+func printExtract(what string, codes []string, links []server.Link) error {
+	if what == "code" {
+		if len(codes) == 0 {
+			return errors.New("no code found")
+		}
+		fmt.Println(codes[0])
+		return nil
+	}
+	if len(links) == 0 {
+		return errors.New("no links found")
+	}
+	for _, l := range links {
+		fmt.Println(l.URL)
+	}
+	return nil
 }

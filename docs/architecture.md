@@ -7,10 +7,10 @@ mock-rule engine. Stdlib only.
 
 ```
 mailhook (one process)
-  ├─ SMTP listener        :1025   handleSMTP → store.addMail
+  ├─ SMTP listener        :7725   handleSMTP → store.addMail
   ├─ Hook listener        :7790   net/http handler → store.addHook
   │                                          ↘ matchRule → custom response
-  └─ Query API + Web UI   :8091   net/http handler
+  └─ Query API + Web UI   :7791   net/http handler
                                   ├─ /mail, /hook, /rule  (REST)
                                   ├─ /tail               (NDJSON stream)
                                   └─ /, /ui              (embedded HTML)
@@ -44,10 +44,14 @@ Restarting the daemon wipes the buffer. Nothing is persisted to disk.
    immune to parent shell exit).
 3. Redirect stdout/stderr to `~/.local/var/mailhook/log/mailhook.log`.
 4. Write child pid to `~/.local/var/mailhook/run/mailhook.pid`.
-5. Release the child handle, sleep 400 ms, verify the pid is still alive.
+5. Wait until `serve` writes `run/mailhook.json` (its bound ports), or
+   report the log if the child exits first (e.g. a busy port).
 
-`stop` reads the pidfile, sends `SIGTERM`, then `pgrep -f "mailhook serve"`
-reaps any orphans (e.g. from a hard kill that left the pidfile stale).
+`stop` only signals the pid in the pidfile (or `mailhook.json`), and only
+after `ps` confirms it is still a `mailhook serve` process, so a stale pid
+reused by another program is never killed. It sends `SIGTERM`, waits up to
+5 s for exit, then `SIGKILL`s. Other `mailhook serve` processes (other state
+dirs, hand-run `serve`) are listed but left alone unless `stop --all`.
 
 ## Resource footprint
 
@@ -78,7 +82,8 @@ mailhook/
 │   ├── server/             SMTP + webhook + API + UI (package server)
 │   │   ├── defaults.go     default ports / capacity
 │   │   ├── store.go        Mail/Hook/Rule types, ring buffer, pub/sub
-│   │   ├── smtp.go         SMTP receiver + MIME parsing
+│   │   ├── smtp.go         SMTP receiver + MIME parsing (charsets, attachments)
+│   │   ├── extract.go      links, one-time codes, SMS fields, charset tables
 │   │   ├── web.go          webhook receiver, Query API, go:embed UI
 │   │   ├── serve.go        Run() — starts the three listeners
 │   │   └── ui.html         embedded Web UI
@@ -96,9 +101,16 @@ mailhook/
 └── SKILL.md                agent-facing skill manifest
 ```
 
-Total Go source: ~1500 lines across 8 files; longest single file is
-`cli/cli.go` (~280 lines). Web UI: ~560 lines of self-contained HTML/CSS/JS
-(no framework, no build step).
+Total Go source: ~2400 lines across 9 files, plus tests for parsing and
+extraction. Web UI: ~1100 lines of self-contained HTML/CSS/JS (no
+framework, no build step).
+
+The UI renders HTML mail in an iframe with `sandbox="allow-same-origin
+allow-popups allow-popups-to-escape-sandbox"`: no script runs, links open
+in a new tab, and the parent can size the frame to its content. `cid:`
+images are rewritten to `/mail/{id}/part/{n}`, which is served with
+`Content-Security-Policy: sandbox` so an attachment can never run script
+on the API origin.
 
 ## Dependency graph
 

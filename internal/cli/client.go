@@ -13,13 +13,18 @@ import (
 	"os"
 	"strings"
 
+	"github.com/PasinduYeshan/mailhook/internal/daemon"
 	"github.com/PasinduYeshan/mailhook/internal/server"
 )
 
-// apiURL is the Query API base URL the CLI talks to.
+// apiURL is the Query API base URL the CLI talks to: $MAILHOOK_API, else the
+// running instance's address, else the default.
 func apiURL() string {
 	if v := os.Getenv("MAILHOOK_API"); v != "" {
 		return strings.TrimRight(v, "/")
+	}
+	if rt, ok := daemon.ReadRuntime(); ok {
+		return "http://" + rt.API
 	}
 	return "http://" + server.DefaultAPIAddr
 }
@@ -87,15 +92,19 @@ type stringSlice []string
 func (s *stringSlice) String() string     { return strings.Join(*s, ",") }
 func (s *stringSlice) Set(v string) error { *s = append(*s, v); return nil }
 
+// truncate shortens s to n runes, never splitting a UTF-8 sequence.
 func truncate(s string, n int) string {
-	if len(s) <= n {
+	r := []rune(s)
+	if len(r) <= n {
 		return s
 	}
 	if n <= 1 {
-		return s[:n]
+		return string(r[:n])
 	}
-	return s[:n-1] + "…"
+	return string(r[:n-1]) + "…"
 }
+
+func oneLine(s string) string { return strings.Join(strings.Fields(s), " ") }
 
 func orStar(s string) string {
 	if s == "" {
