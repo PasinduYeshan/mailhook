@@ -5,9 +5,13 @@ INSTALL_DIR  := $(PREFIX)/bin
 STATE_DIR    := $(PREFIX)/var/$(BIN)
 
 GO           := go
-GOFLAGS      := -trimpath -ldflags="-s -w"
+VERSION      ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+COMMIT       ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
+DATE         ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+LDFLAGS      := -s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)
+GOFLAGS      := -trimpath -ldflags="$(LDFLAGS)"
 
-.PHONY: all build install uninstall reinstall clean run test vet fmt help
+.PHONY: all build install uninstall reinstall clean run test vet fmt snapshot help
 
 all: build
 
@@ -34,6 +38,10 @@ uninstall:
 
 clean:
 	@rm -f $(BIN)
+	@rm -rf dist
+
+snapshot:
+	goreleaser release --snapshot --clean
 
 run: build
 	./$(BIN) serve
@@ -55,6 +63,7 @@ help:
 	@echo "  make uninstall  - remove installed binary (state dir kept)"
 	@echo "  make run        - build + run in foreground"
 	@echo "  make vet        - go vet ./..."
+	@echo "  make snapshot   - local release build into ./dist (needs goreleaser)"
 	@echo "  make clean      - remove local build artifact"
 	@echo ""
 	@echo "Override install prefix:"

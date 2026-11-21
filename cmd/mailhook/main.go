@@ -12,6 +12,13 @@ import (
 	"github.com/PasinduYeshan/mailhook/internal/daemon"
 )
 
+// Set at release build time via -ldflags "-X main.version=... -X main.commit=... -X main.date=...".
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
 	log.SetFlags(log.Ltime)
 	if len(os.Args) < 2 {
@@ -43,6 +50,10 @@ func main() {
 		err = cli.Rule(os.Args[2:])
 	case "tail":
 		err = cli.Tail(os.Args[2:])
+
+	case "-v", "--version", "version":
+		fmt.Printf("mailhook %s (commit %s, built %s)\n", version, commit, date)
+		return
 
 	case "-h", "--help", "help":
 		usage()
@@ -86,6 +97,9 @@ Inspection (talks to a running daemon over HTTP):
                        [-H 'K: V']  [-d MS]  [-f FILE]
   mailhook rule  list  [-j] | show <id> | update <id> | delete <id> | clear
   mailhook tail        [-t mail|hook|all] [-j]
+
+Other:
+  mailhook version                  print version, commit and build date
 
 Docs:
   README.md          install + quick start

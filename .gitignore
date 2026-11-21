@@ -9,3 +9,6 @@
 # Local state
 *.log
 *.pid
+
+# Release build output
+/dist/
