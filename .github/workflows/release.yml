@@ -17,7 +17,9 @@ jobs:
           fetch-depth: 0 # full history for the changelog
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          # Current stable Go: macOS 26 refuses binaries linked by Go 1.22
+          # (no LC_UUID). go.mod keeps 1.22 as the minimum for go install.
+          go-version: stable
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
