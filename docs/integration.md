@@ -69,7 +69,8 @@ mailhook mail list -j \
   | jq -r '[.[] | select(.to[0]=="bob@example.com")] | last | .codes[0]'
 ```
 
-In the UI, codes show as chips (click to copy, or press `c`), and each
+In the UI, the first code leads the detail view in large type (click
+**Copy**, or press `c`), codes show as chips in the list, and each
 link lists its query parameters (`confirmation`, `code`, `inviteToken`, …)
 with copy buttons.
 

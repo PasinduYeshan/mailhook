@@ -97,12 +97,13 @@ curl -X DELETE http://127.0.0.1:7791/rule
 ## From the Web UI
 
 You never have to declare paths up front: any method on any path is
-captured and answered with the default `200`. On the **Hooks** tab,
+captured and answered with the default `200`. In **Webhooks**,
 captures are grouped by path and each group shows what that path
-currently answers (`POST → 200 default` or `POST → 201 rule`). **Set
-response** opens the rule form pre-filled with that method and path;
-**Edit response** opens the rule that answers it. A hook's detail view
-shows the status it got and links to the rule that produced it.
+currently answers (`POST · 200` or `POST · mock 201`). **Mock** opens
+the mock response form pre-filled with that method and path; **Edit
+mock** opens the rule that answers it. A request's detail view shows the
+status it got and links to the rule that produced it. Rules are listed,
+edited and deleted under **Mock responses**.
 
 ## Limitations
 

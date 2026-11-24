@@ -4,289 +4,418 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>mailhook</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235b8def' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='m3 7 9 6 9-6'/%3E%3C/svg%3E">
 <style>
+/* ---------- tokens ---------- */
 :root {
-  --bg: #0d1117; --bg-elev: #161b22; --bg-deep: #010409; --bg-hover: #1c2129;
-  --border: #30363d; --border-soft: #21262d;
-  --fg: #e6edf3; --fg-soft: #c9d1d9; --muted: #8b949e; --dim: #6e7681;
-  --accent: #58a6ff; --accent-bg: rgba(56,139,253,0.14); --sel: rgba(56,139,253,0.16);
-  --green: #3fb950; --green-bg: rgba(46,160,67,0.18);
-  --yellow: #d29922; --yellow-bg: rgba(187,128,9,0.2);
-  --red: #f85149; --red-bg: rgba(248,81,73,0.15);
-  --purple: #bc8cff;
-  --code-fg: #e3b341; --code-bg: rgba(227,179,65,0.12); --code-border: rgba(227,179,65,0.35);
-  --bubble: #1f6feb; --bubble-fg: #fff;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --bg: #0b0d10; --surface: #0f1215; --raised: #14181d; --hover: #181d23; --sel: #172131;
+  --border: #232931; --hairline: #1a1f25;
+  --text: #e7e9ec; --text-2: #c3c8ce; --muted: #9aa3ad; --faint: #8b949e;
+  --accent: #7aa2f7; --accent-strong: #9bb9ff; --accent-bg: rgba(122,162,247,0.14); --on-accent: #0b1220;
+  --success: #6fcf97; --success-bg: rgba(111,207,151,0.12);
+  --warning: #e8b45a; --warning-bg: rgba(232,180,90,0.13);
+  --danger: #f2877c; --danger-bg: rgba(242,135,124,0.13);
+  --key: #c4a7ff;
+  --code: #f3c969; --code-bg: rgba(243,201,105,0.10); --code-border: rgba(243,201,105,0.28);
+  --bubble: #2f62d6; --bubble-fg: #fff;
+  --shadow: 0 8px 24px rgba(0,0,0,0.35);
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
+  --r: 8px; --r-lg: 12px;
+  --ease: cubic-bezier(.2,.8,.2,1);
   color-scheme: dark;
 }
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #ffffff; --bg-elev: #f6f8fa; --bg-deep: #f6f8fa; --bg-hover: #f3f4f6;
-    --border: #d0d7de; --border-soft: #e5e9ee;
-    --fg: #1f2328; --fg-soft: #24292f; --muted: #59636e; --dim: #818b98;
-    --accent: #0969da; --accent-bg: rgba(9,105,218,0.08); --sel: rgba(9,105,218,0.09);
-    --green: #1a7f37; --green-bg: rgba(31,136,61,0.12);
-    --yellow: #9a6700; --yellow-bg: rgba(154,103,0,0.12);
-    --red: #cf222e; --red-bg: rgba(207,34,46,0.1);
-    --purple: #8250df;
-    --code-fg: #7d4e00; --code-bg: #fff8c5; --code-border: #e6c84f;
-    --bubble: #0969da;
+    --bg: #ffffff; --surface: #f7f8fa; --raised: #ffffff; --hover: #f1f3f6; --sel: #e9f0fe;
+    --border: #dde1e6; --hairline: #eceef1;
+    --text: #15181c; --text-2: #2f353c; --muted: #565f6b; --faint: #626b76;
+    --accent: #2f62d6; --accent-strong: #1f4fbf; --accent-bg: rgba(47,98,214,0.09); --on-accent: #ffffff;
+    --success: #1d7a46; --success-bg: rgba(29,122,70,0.10);
+    --warning: #8f5d00; --warning-bg: rgba(160,105,0,0.11);
+    --danger: #c0352b; --danger-bg: rgba(192,53,43,0.09);
+    --key: #7044c9;
+    --code: #7a4d00; --code-bg: #fff6d6; --code-border: #ecd38a;
+    --bubble: #2f62d6;
+    --shadow: 0 8px 24px rgba(20,24,28,0.12);
     color-scheme: light;
   }
 }
+
+/* ---------- base ---------- */
 * { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
 html, body { height: 100%; }
-body { font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background: var(--bg); color: var(--fg); display: flex; flex-direction: column; }
-code, pre, .mono { font-family: var(--mono); font-size: 14px; }
-a { color: var(--accent); }
-button, .btn { font: inherit; cursor: pointer; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-elev); color: var(--fg); padding: 4px 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
-button:hover, .btn:hover { background: var(--bg-hover); border-color: var(--dim); }
-.btn-sm { font-size: 13px; padding: 1px 7px; border-radius: 5px; }
-.btn-danger:hover { color: var(--red); border-color: var(--red); }
-.btn-primary { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+body { font: 14px/1.5 var(--sans); background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+::selection { background: var(--accent-bg); color: var(--text); }
+code, pre, .mono { font-family: var(--mono); font-size: 13px; }
+a { color: var(--accent); text-underline-offset: 2px; }
+a:hover { color: var(--accent-strong); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; }
+.ic { width: 16px; height: 16px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ic.sm { width: 14px; height: 14px; }
+.tnum { font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { * { transition-duration: 0s !important; animation: none !important; } }
 
-header { padding: 10px 18px; background: var(--bg-elev); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; flex-shrink: 0; flex-wrap: wrap; }
-h1 { font-size: 16.5px; font-weight: 700; color: var(--accent); letter-spacing: 0.3px; }
-.tabs { display: flex; gap: 2px; }
-.tabs button { background: none; border: 1px solid transparent; color: var(--muted); padding: 5px 13px; font-weight: 500; }
-.tabs button.active { background: var(--bg); border-color: var(--border); color: var(--fg); }
-.tabs button:hover:not(.active) { color: var(--fg); background: none; }
-.count { color: var(--accent); margin-left: 5px; font-size: 13px; font-variant-numeric: tabular-nums; }
-.count.has-new::after { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-left: 4px; vertical-align: 1px; }
-#search { flex: 1; min-width: 160px; max-width: 420px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--fg); padding: 4px 10px; font: inherit; }
-#search:focus { outline: none; border-color: var(--accent); }
-.controls { margin-left: auto; display: flex; gap: 8px; align-items: center; color: var(--muted); }
-.controls label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
-.controls input[type=checkbox] { accent-color: var(--green); }
-.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
-.dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
+/* ---------- buttons ---------- */
+button, .btn { font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; border-radius: var(--r); border: 1px solid var(--border); background: var(--raised); color: var(--text-2); height: 32px; padding: 0 12px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; transition: background .15s var(--ease), border-color .15s var(--ease), color .15s var(--ease); }
+button:hover, .btn:hover { background: var(--hover); color: var(--text); border-color: var(--faint); }
+.btn-sm { height: 26px; padding: 0 8px; font-size: 12px; border-radius: 6px; }
+.btn-icon { width: 32px; padding: 0; }
+.btn-sm.btn-icon { width: 26px; }
+.btn-ghost { background: transparent; border-color: transparent; }
+.btn-ghost:hover { background: var(--hover); border-color: transparent; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn-primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); color: var(--on-accent); }
+.btn-danger:hover { color: var(--danger); border-color: var(--danger); background: var(--danger-bg); }
+.btn-ghost.btn-danger:hover { border-color: transparent; }
 
-main { flex: 1; display: flex; min-height: 0; }
-.list-panel { width: 40%; min-width: 360px; max-width: 640px; overflow-y: auto; border-right: 1px solid var(--border); }
-.detail-panel { flex: 1; overflow-y: auto; min-width: 0; }
-.detail-inner { padding: 18px 24px 28px; display: flex; flex-direction: column; gap: 14px; max-width: 1200px; }
+/* ---------- app shell ---------- */
+.app { display: grid; grid-template-columns: 232px minmax(320px, 420px) minmax(0, 1fr); height: 100%; }
+.sidebar { display: flex; flex-direction: column; gap: 4px; padding: 16px 12px 12px; border-right: 1px solid var(--hairline); background: var(--surface); min-height: 0; overflow-y: auto; }
+.brand { display: flex; align-items: center; gap: 8px; padding: 2px 8px 16px; font-weight: 600; font-size: 15px; letter-spacing: -0.01em; color: var(--text); }
+.brand .ic { width: 20px; height: 20px; color: var(--accent); }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav button { justify-content: flex-start; gap: 10px; height: 36px; padding: 0 10px; border: none; background: transparent; color: var(--muted); font-size: 14px; }
+.nav button:hover { background: var(--hover); color: var(--text); }
+.nav button.active { background: var(--sel); color: var(--text); }
+.nav button.active .ic { color: var(--accent); }
+.nav .lbl { flex: 1; text-align: left; }
+.count { font-size: 12px; font-weight: 500; color: var(--faint); font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 5px; }
+.nav button.active .count { color: var(--text-2); }
+.count.has-new::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.side-grow { flex: 1; min-height: 16px; }
+.endpoints { display: flex; flex-direction: column; gap: 2px; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--r-lg); background: var(--bg); }
+.endpoints h2 { font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
+.port { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; padding: 6px 8px; margin: 0 -8px; border-radius: 6px; }
+.port:hover { background: var(--hover); }
+.port:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+.port span { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.port span .ic { width: 12px; height: 12px; opacity: 0; transition: opacity .15s var(--ease); }
+.port:hover span .ic, .port:focus-visible span .ic { opacity: 1; }
+.port b { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--text); overflow-wrap: anywhere; }
+.live { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; color: var(--muted); cursor: pointer; user-select: none; }
+.live input { margin-left: auto; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); flex-shrink: 0; }
+.dot.live { background: var(--success); box-shadow: 0 0 0 3px var(--success-bg); }
+.keys { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 12px 8px 0; font-size: 12px; color: var(--faint); }
+kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; color: var(--muted); background: var(--raised); }
 
-.row { position: relative; padding: 8px 14px 9px 22px; border-bottom: 1px solid var(--border-soft); cursor: pointer; display: flex; flex-direction: column; gap: 1px; }
-.row:hover { background: var(--bg-hover); }
-.row.sel { background: var(--sel); box-shadow: inset 3px 0 0 var(--accent); }
-.row.unread::before { content: ''; position: absolute; left: 8px; top: 15px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
-.row .r1 { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
-.row .who { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
-.row.unread .who, .row.unread .subj { color: var(--fg); }
-.row .time { color: var(--dim); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.row .subj { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg-soft); }
-.row .snip { color: var(--muted); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.row .chips { display: flex; gap: 5px; margin-top: 3px; flex-wrap: wrap; }
+/* ---------- list ---------- */
+.list-panel { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--hairline); }
+.list-head { display: flex; align-items: center; gap: 6px; padding: 12px; border-bottom: 1px solid var(--hairline); }
+.search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); color: var(--faint); transition: border-color .15s var(--ease); }
+.search:focus-within { border-color: var(--accent); }
+#search { flex: 1; min-width: 0; border: none; outline: none; background: none; color: var(--text); font: inherit; }
+#search::placeholder { color: var(--faint); }
+#search::-webkit-search-cancel-button { display: none; }
+.list-scroll { flex: 1; overflow-y: auto; min-height: 0; }
+
+.row { position: relative; padding: 12px 16px 12px 24px; border-bottom: 1px solid var(--hairline); cursor: pointer; display: flex; flex-direction: column; gap: 2px; transition: background .12s var(--ease); }
+.row:hover { background: var(--hover); }
+.row.sel { background: var(--sel); box-shadow: inset 2px 0 0 var(--accent); }
+.row.unread::before { content: ''; position: absolute; left: 10px; top: 19px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.row .r1 { display: flex; gap: 8px; align-items: center; min-width: 0; }
+.row .who { font-weight: 500; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.row .who .more-n { color: var(--faint); font-weight: 400; }
+.row.unread .who { font-weight: 600; color: var(--text); }
+.row .time { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.row .subj { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+.row.unread .subj { color: var(--text); }
+.row .snip { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .snip i { color: var(--faint); }
+.row .chips { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; align-items: center; }
 .row .chips:empty { display: none; }
-.row .x { position: absolute; right: 10px; bottom: 7px; opacity: 0; padding: 0 6px; font-size: 14px; background: var(--bg); }
-.row:hover .x { opacity: 1; }
-.row .path { font-family: var(--mono); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.row .x { position: absolute; right: 12px; bottom: 10px; opacity: 0; background: var(--raised); transition: opacity .12s var(--ease); }
+.row:hover .x, .row .x:focus-visible { opacity: 1; }
+.row .path { font-family: var(--mono); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; color: var(--text); }
 
-.group { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; background: var(--bg-elev); border-bottom: 1px solid var(--border-soft); cursor: pointer; user-select: none; }
-.group:hover { background: var(--bg-hover); }
-.group .tw { color: var(--dim); width: 12px; font-size: 11.5px; }
-.group .gp { font-family: var(--mono); font-size: 14px; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.group .ans { font-size: 13px; color: var(--muted); white-space: nowrap; }
-.group .ans b { font-weight: 600; }
-.group .ans .rule { color: var(--purple); }
-.list-tools { display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-bottom: 1px solid var(--border-soft); color: var(--muted); font-size: 13px; }
-.list-tools label { display: inline-flex; gap: 5px; align-items: center; cursor: pointer; }
+.group { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px 0 8px; background: var(--surface); border-bottom: 1px solid var(--hairline); cursor: pointer; user-select: none; }
+.group:hover { background: var(--hover); }
+.group .tw { color: var(--faint); display: grid; place-items: center; transition: transform .15s var(--ease); }
+.group.closed .tw { transform: rotate(-90deg); }
+.group .gp { font-family: var(--mono); font-size: 13px; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.group .ans { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.group .ans.rule { color: var(--key); }
+.list-tools { display: flex; align-items: center; gap: 8px; padding: 8px 12px 8px 16px; border-bottom: 1px solid var(--hairline); color: var(--muted); font-size: 13px; }
+.list-tools label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
 .list-tools .grow { flex: 1; }
-.chip { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; line-height: 16px; padding: 0 6px; border-radius: 10px; border: 1px solid var(--border); color: var(--muted); background: var(--bg); }
-.chip.code { font-family: var(--mono); color: var(--code-fg); background: var(--code-bg); border-color: var(--code-border); cursor: copy; font-weight: 600; }
-.chip.code:hover { filter: brightness(1.15); }
-.chip.warn { color: var(--yellow); background: var(--yellow-bg); border-color: transparent; }
-.chip.err { color: var(--red); background: var(--red-bg); border-color: transparent; }
-.chip.smsc { color: var(--purple); border-color: transparent; background: rgba(188,140,255,0.12); }
 
-.method { display: inline-block; padding: 0 6px; border-radius: 4px; font-size: 12.5px; font-weight: 700; font-family: var(--mono); line-height: 17px; background: rgba(110,118,129,0.2); color: var(--muted); }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; line-height: 18px; padding: 0 7px; border-radius: 6px; color: var(--muted); background: var(--hover); white-space: nowrap; }
+.chip .ic { width: 12px; height: 12px; }
+.chip.code { font-family: var(--mono); color: var(--code); background: var(--code-bg); box-shadow: inset 0 0 0 1px var(--code-border); cursor: copy; font-weight: 600; letter-spacing: 0.02em; }
+.chip.code:hover { box-shadow: inset 0 0 0 1px var(--code); }
+.chip.ok { color: var(--success); background: var(--success-bg); }
+.chip.warn { color: var(--warning); background: var(--warning-bg); }
+.chip.err { color: var(--danger); background: var(--danger-bg); }
+.chip.smsc { color: var(--key); background: color-mix(in srgb, var(--key) 13%, transparent); }
+
+.method { display: inline-block; padding: 0 6px; border-radius: 4px; font-size: 11px; font-weight: 600; font-family: var(--mono); line-height: 18px; letter-spacing: 0.02em; background: var(--hover); color: var(--muted); }
 .method.GET { background: var(--accent-bg); color: var(--accent); }
-.method.POST { background: var(--green-bg); color: var(--green); }
-.method.PUT, .method.PATCH { background: var(--yellow-bg); color: var(--yellow); }
-.method.DELETE { background: var(--red-bg); color: var(--red); }
+.method.POST { background: var(--success-bg); color: var(--success); }
+.method.PUT, .method.PATCH { background: var(--warning-bg); color: var(--warning); }
+.method.DELETE { background: var(--danger-bg); color: var(--danger); }
 
-.empty, .detail-empty { padding: 60px 24px; text-align: center; color: var(--dim); line-height: 1.8; }
-.empty pre { display: inline-block; text-align: left; margin-top: 10px; padding: 10px 14px; background: var(--bg-deep); border: 1px solid var(--border-soft); border-radius: 6px; color: var(--muted); white-space: pre-wrap; word-break: break-all; }
+.empty { padding: 48px 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; color: var(--muted); }
+.empty .ic { width: 28px; height: 28px; color: var(--faint); stroke-width: 1.5; }
+.empty h3 { font-size: 15px; font-weight: 600; color: var(--text); }
+.empty p { max-width: 320px; text-wrap: pretty; }
+.empty code { color: var(--text-2); }
+.empty pre { text-align: left; margin-top: 4px; padding: 12px; background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r); color: var(--text-2); white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; max-width: 100%; }
+.detail-empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--faint); padding: 24px; text-align: center; }
+.detail-empty .ic { width: 32px; height: 32px; stroke-width: 1.5; }
 
-.d-head { display: flex; gap: 12px; align-items: flex-start; }
-.d-title { font-size: 20px; font-weight: 600; flex: 1; min-width: 0; word-break: break-word; line-height: 1.35; }
-.d-title .path { font-family: var(--mono); font-size: 17.5px; }
+/* ---------- detail ---------- */
+.detail-wrap { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.detail-panel { flex: 1; overflow-y: auto; min-height: 0; }
+.detail-inner { padding: 24px 32px 40px; display: flex; flex-direction: column; gap: 20px; max-width: 1080px; }
+.back { display: none; align-self: flex-start; margin: -8px 0 -4px -8px; }
+.d-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.d-title { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; flex: 1 1 280px; min-width: 0; overflow-wrap: anywhere; line-height: 1.3; text-wrap: balance; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.d-title .path { font-family: var(--mono); font-size: 17px; font-weight: 500; }
+.d-title .method { font-size: 12px; line-height: 22px; padding: 0 8px; }
 .d-actions { display: flex; gap: 6px; flex-shrink: 0; }
-.meta { display: grid; grid-template-columns: max-content 1fr; gap: 2px 14px; font-size: 14.5px; }
+.meta { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; font-size: 13px; }
 .meta dt { color: var(--muted); }
-.meta dd { word-break: break-word; min-width: 0; }
-.meta .sub { color: var(--dim); }
+.meta dd { overflow-wrap: anywhere; min-width: 0; color: var(--text-2); }
+.meta .sub { color: var(--faint); }
+.meta .sub code { font-size: 12px; }
+.meta dd .btn-sm { margin-left: 8px; vertical-align: 1px; }
 
-.card { border: 1px solid var(--border); border-radius: 8px; background: var(--bg-elev); }
-.card-h { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-bottom: 1px solid var(--border-soft); color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+.card { border: 1px solid var(--hairline); border-radius: var(--r-lg); background: var(--surface); overflow: hidden; }
+.card-h { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 8px 0 16px; border-bottom: 1px solid var(--hairline); font-size: 13px; font-weight: 600; color: var(--text); }
+.card-h .count { font-weight: 500; }
 .card-h .grow { flex: 1; }
-.card-h button { text-transform: none; letter-spacing: 0; font-weight: 400; }
-.card-b { padding: 10px 12px; }
+.card-b { padding: 12px 16px; }
+.card-b.sub { color: var(--faint); }
 
-.codes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.code-big { font-family: var(--mono); font-size: 25.5px; font-weight: 700; letter-spacing: 3px; color: var(--code-fg); background: var(--code-bg); border: 1px solid var(--code-border); border-radius: 8px; padding: 4px 14px; cursor: copy; }
-.code-big:hover { filter: brightness(1.15); background: var(--code-bg); border-color: var(--code-fg); }
-.code-big small { font-size: 11.5px; letter-spacing: 0.5px; font-weight: 500; opacity: 0.7; margin-left: 4px; font-family: -apple-system, sans-serif; }
+.codes { display: flex; gap: 12px; flex-wrap: wrap; align-items: stretch; }
+.code-big { height: auto; display: flex; align-items: center; gap: 16px; padding: 12px 12px 12px 20px; border-radius: var(--r-lg); border: 1px solid var(--code-border); background: var(--code-bg); color: var(--code); cursor: copy; text-align: left; }
+.code-big:hover { background: var(--code-bg); border-color: var(--code); color: var(--code); }
+.code-big .cv { display: flex; flex-direction: column; gap: 2px; }
+.code-big .cl { font-family: var(--sans); font-size: 12px; font-weight: 500; opacity: 0.85; }
+.code-big .cn { font-family: var(--mono); font-size: 28px; line-height: 1.15; font-weight: 600; letter-spacing: 0.12em; }
+.code-big .cc { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: var(--r); background: var(--code); color: var(--bg); font-family: var(--sans); font-size: 13px; font-weight: 600; }
+.code-big .cc kbd { background: transparent; border-color: currentColor; color: inherit; opacity: 0.7; }
 
 .links { display: flex; flex-direction: column; }
-.link { padding: 8px 12px; border-top: 1px solid var(--border-soft); }
+.link { padding: 12px 8px 12px 16px; border-top: 1px solid var(--hairline); }
 .link:first-child { border-top: none; }
 .link-top { display: flex; gap: 8px; align-items: center; }
-.link-label { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.link-label .host { font-weight: 400; color: var(--muted); margin-left: 6px; font-size: 14px; }
-.link-btns { display: flex; gap: 5px; flex-shrink: 0; }
-.link-url { font-family: var(--mono); font-size: 13.5px; word-break: break-all; margin-top: 3px; color: var(--muted); line-height: 1.45; }
-.u-h { color: var(--fg); } .u-p { color: var(--fg-soft); } .u-k { color: var(--purple); } .u-v { color: var(--muted); } .u-a { color: var(--dim); }
-.params { width: 100%; border-collapse: collapse; margin-top: 7px; font-size: 14px; }
-.params td { padding: 3px 8px; border-top: 1px solid var(--border-soft); vertical-align: top; }
-.params td:first-child { font-family: var(--mono); color: var(--purple); white-space: nowrap; width: 1%; }
-.params td.v { font-family: var(--mono); word-break: break-all; }
-.params td:last-child { width: 1%; text-align: right; }
-.more { padding: 6px 12px; border-top: 1px solid var(--border-soft); }
+.link-label { font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.link-label .host { font-weight: 400; color: var(--muted); margin-left: 8px; font-size: 13px; }
+.link-btns { display: flex; gap: 6px; flex-shrink: 0; }
+.link-url { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; margin-top: 4px; color: var(--muted); line-height: 1.5; padding-right: 8px; }
+.u-h { color: var(--text); } .u-p { color: var(--text-2); } .u-k { color: var(--key); } .u-v { color: var(--muted); } .u-a { color: var(--faint); }
+.params { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+.params td { padding: 4px 8px; border-top: 1px solid var(--hairline); vertical-align: middle; }
+.params td:first-child { font-family: var(--mono); font-size: 13px; color: var(--key); white-space: nowrap; width: 1%; padding-left: 0; }
+.params td.v { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; word-break: break-word; }
+.params td:last-child { width: 1%; text-align: right; padding-right: 0; }
+.more { padding: 8px 16px; border-top: 1px solid var(--hairline); }
 
 .atts { display: flex; flex-wrap: wrap; gap: 8px; }
-.att { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); max-width: 100%; }
-.att .ico { width: 34px; height: 34px; border-radius: 4px; background: var(--bg-elev); display: grid; place-items: center; font-size: 11.5px; font-weight: 700; color: var(--muted); overflow: hidden; flex-shrink: 0; }
+.att { display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 8px; border: 1px solid var(--border); border-radius: var(--r); background: var(--raised); max-width: 100%; }
+.att .ico { width: 36px; height: 36px; border-radius: 6px; background: var(--hover); display: grid; place-items: center; font-size: 11px; font-weight: 600; color: var(--muted); overflow: hidden; flex-shrink: 0; }
 .att .ico img { width: 100%; height: 100%; object-fit: cover; }
-.att .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; }
-.att .sz { color: var(--dim); font-size: 13px; }
+.att .nm { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; }
+.att .sz { color: var(--faint); font-size: 12px; }
+.att .a-btns { display: flex; gap: 4px; }
 
-.vtabs { display: flex; gap: 2px; align-items: center; border-bottom: 1px solid var(--border); }
-.vtabs button { border: none; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: var(--muted); padding: 6px 12px; margin-bottom: -1px; }
-.vtabs button.active { color: var(--fg); border-bottom-color: var(--accent); }
-.vtabs button:hover:not(.active) { color: var(--fg); background: none; }
+.vtabs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; border-bottom: 1px solid var(--border); }
+.vtabs > button { height: 36px; border: none; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: var(--muted); padding: 0 12px; margin-bottom: -1px; font-size: 14px; }
+.vtabs > button.active { color: var(--text); border-bottom-color: var(--accent); }
+.vtabs > button:hover:not(.active) { color: var(--text); background: none; }
 .vtabs .grow { flex: 1; }
-.vtabs .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 4px; }
-.vtabs .seg button { border: none; border-radius: 0; padding: 2px 9px; font-size: 13px; margin: 0; border-bottom: none; }
-.vtabs .seg button.active { background: var(--accent-bg); color: var(--accent); }
+.seg { display: inline-flex; padding: 2px; gap: 2px; border-radius: var(--r); background: var(--hover); margin-bottom: 4px; }
+.seg button { height: 24px; border: none; border-radius: 6px; padding: 0 10px; font-size: 12px; background: none; color: var(--muted); }
+.seg button:hover { background: none; color: var(--text); }
+.seg button.active { background: var(--raised); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
 
-.frame-wrap { background: #fff; border: 1px solid var(--border); border-radius: 6px; margin: 0 auto; width: 100%; overflow: hidden; transition: width .15s; }
+.frame-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--r-lg); margin: 0 auto; width: 100%; overflow: hidden; transition: width .2s var(--ease); }
 .mail-frame { display: block; width: 100%; height: 300px; border: 0; background: #fff; }
-.pre { padding: 12px 14px; background: var(--bg-deep); border: 1px solid var(--border-soft); border-radius: 6px; color: var(--fg-soft); overflow-x: auto; white-space: pre-wrap; word-break: break-word; font-family: var(--mono); font-size: 14px; line-height: 1.55; }
-.pre.prose { font-family: inherit; font-size: 16px; line-height: 1.6; }
-.pre a { word-break: break-all; }
-mark.code { background: var(--code-bg); color: var(--code-fg); border: 1px solid var(--code-border); border-radius: 4px; padding: 0 3px; font-weight: 700; cursor: copy; font-family: var(--mono); }
-.j-k { color: var(--purple); } .j-s { color: var(--green); } .j-n { color: var(--accent); } .j-b { color: var(--yellow); }
-.kv { width: 100%; border-collapse: collapse; font-size: 14px; }
-.kv td { padding: 4px 10px; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
-.kv td:first-child { font-family: var(--mono); color: var(--muted); white-space: nowrap; width: 1%; }
-.kv td.v { font-family: var(--mono); word-break: break-all; }
-.kv td:last-child:not(.v) { width: 1%; }
+.pre { padding: 16px; background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-lg); color: var(--text-2); overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--mono); font-size: 13px; line-height: 1.6; }
+.pre.prose { font-family: var(--sans); font-size: 15px; line-height: 1.65; max-width: 72ch; background: none; border: none; padding: 4px 0; color: var(--text); }
+mark.code { background: var(--code-bg); color: var(--code); box-shadow: inset 0 0 0 1px var(--code-border); border-radius: 4px; padding: 0 4px; font-weight: 600; cursor: copy; font-family: var(--mono); }
+.j-k { color: var(--key); } .j-s { color: var(--success); } .j-n { color: var(--accent); } .j-b { color: var(--warning); }
+.kv { width: 100%; border-collapse: collapse; font-size: 13px; }
+.kv td { padding: 8px 12px; border-bottom: 1px solid var(--hairline); vertical-align: middle; }
+.kv tr:last-child td { border-bottom: none; }
+.kv td:first-child { font-family: var(--mono); font-size: 13px; color: var(--muted); white-space: nowrap; width: 1%; padding-left: 16px; }
+.kv td.v { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; word-break: break-word; color: var(--text-2); }
+.kv td:last-child:not(.v) { width: 1%; padding-right: 8px; }
+.kv .btn-sm { opacity: 0; }
+.kv tr:hover .btn-sm, .kv .btn-sm:focus-visible { opacity: 1; }
 
-.sms { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
-.sms-who { display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
-.sms-who b { color: var(--fg); font-family: var(--mono); font-weight: 600; }
-.bubble { align-self: flex-start; max-width: 520px; background: var(--bubble); color: var(--bubble-fg); padding: 9px 13px; border-radius: 16px 16px 16px 4px; white-space: pre-wrap; word-break: break-word; font-size: 16.5px; line-height: 1.45; }
-.bubble a { color: inherit; text-decoration: underline; word-break: break-all; }
-.bubble mark.code { background: rgba(255,255,255,0.22); color: inherit; border-color: rgba(255,255,255,0.45); }
+.sms { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.sms-who { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.sms-who b { color: var(--text); font-family: var(--mono); font-size: 13px; font-weight: 500; }
+.bubble { align-self: flex-start; max-width: 480px; background: var(--bubble); color: var(--bubble-fg); padding: 10px 14px; border-radius: 18px 18px 18px 4px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; line-height: 1.45; }
+.bubble a { color: inherit; text-decoration: underline; }
+.bubble mark.code { background: rgba(255,255,255,0.2); color: inherit; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4); }
 
-footer { padding: 6px 16px; color: var(--dim); font-size: 13px; border-top: 1px solid var(--border-soft); flex-shrink: 0; display: flex; gap: 12px; flex-wrap: wrap; }
-footer .grow { flex: 1; }
-kbd { font-family: var(--mono); font-size: 11.5px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 3px; padding: 0 4px; color: var(--muted); }
-#toast { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%) translateY(20px); background: var(--fg); color: var(--bg); padding: 6px 14px; border-radius: 6px; font-size: 14px; opacity: 0; pointer-events: none; transition: all .18s; max-width: 80vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#toast.show { opacity: 1; transform: translateX(-50%); }
+#toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 8px); display: flex; align-items: center; gap: 8px; background: var(--text); color: var(--bg); padding: 8px 14px; border-radius: var(--r); font-size: 13px; font-weight: 500; opacity: 0; pointer-events: none; transition: opacity .15s var(--ease), transform .2s var(--ease); max-width: min(80vw, 520px); box-shadow: var(--shadow); z-index: 50; }
+#toast span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-/* Rule form */
-#rule-form { display: none; padding: 14px 16px; background: var(--bg-elev); border-bottom: 1px solid var(--border); }
-#rule-form.open { display: block; }
-#rule-form h2 { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
-#rule-form .grid { display: grid; grid-template-columns: 120px 1fr 100px 100px; gap: 8px; margin-bottom: 8px; }
-#rule-form label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.3px; }
-#rule-form input, #rule-form select, #rule-form textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--fg); padding: 5px 8px; font: 14px var(--mono); }
-#rule-form input:focus, #rule-form select:focus, #rule-form textarea:focus { outline: none; border-color: var(--accent); }
-#rule-form textarea { min-height: 60px; resize: vertical; }
-#rule-form .frow { margin-bottom: 8px; }
-#rule-form .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
-.hint { color: var(--dim); font-size: 13px; margin-top: 3px; }
+/* ---------- rule form ---------- */
+#rule-form { display: none; flex: 1; overflow-y: auto; }
+.detail-wrap.form-open #rule-form { display: block; }
+.detail-wrap.form-open .detail-panel { display: none; }
+.form { padding: 24px 32px 40px; display: flex; flex-direction: column; gap: 16px; max-width: 640px; }
+.form h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.form .lead { color: var(--muted); margin-top: -8px; }
+.form .grid { display: grid; grid-template-columns: 140px 1fr; gap: 16px; }
+.form .grid.two { grid-template-columns: 1fr 1fr; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field label { font-size: 13px; font-weight: 500; color: var(--text-2); }
+.field label .req { color: var(--danger); margin-left: 2px; }
+.field label .opt { color: var(--faint); font-weight: 400; }
+.form input, .form select, .form textarea { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); color: var(--text); height: 36px; padding: 0 10px; font: 13px var(--mono); transition: border-color .15s var(--ease); }
+.form select { appearance: none; padding-right: 30px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23959ea8' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+.form select option { background: var(--raised); color: var(--text); }
+.form textarea { height: auto; min-height: 84px; padding: 8px 10px; resize: vertical; line-height: 1.5; }
+.form input:focus, .form select:focus, .form textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.form input[aria-invalid=true], .form input[aria-invalid=true]:focus { border-color: var(--danger); box-shadow: 0 0 0 3px var(--danger-bg); }
+.hint { color: var(--faint); font-size: 13px; }
+.err-msg { color: var(--danger); font-size: 13px; display: flex; gap: 6px; align-items: center; }
+.err-msg[hidden] { display: none; }
+.form-actions { display: flex; gap: 8px; padding-top: 8px; }
 
-@media (max-width: 760px) {
-  main { flex-direction: column; }
-  .list-panel { width: 100%; max-width: none; min-width: 0; max-height: 40vh; border-right: none; border-bottom: 1px solid var(--border); }
-  .detail-inner { padding: 14px; }
-  #rule-form .grid { grid-template-columns: 1fr 1fr; }
+/* ---------- responsive ---------- */
+@media (max-width: 1100px) {
+  .app { grid-template-columns: 64px minmax(300px, 380px) minmax(0, 1fr); }
+  .sidebar { padding: 16px 8px; align-items: stretch; }
+  .brand span, .nav .lbl, .endpoints, .keys, .live span:not(.dot) { display: none; }
+  .brand { justify-content: center; padding: 2px 0 16px; }
+  .nav button { justify-content: center; padding: 0; position: relative; }
+  .nav .count { position: absolute; top: 2px; right: 4px; font-size: 11px; }
+  .nav .count:not(.has-new) { display: none; }
+  .nav .count.has-new { font-size: 0; }
+  .live { justify-content: center; }
+  .live input { margin: 0; }
 }
-.ports { display: flex; gap: 6px; flex-wrap: wrap; }
-.port { background: var(--bg); border-color: var(--border); color: var(--muted); padding: 3px 10px; font-size: 13px; }
-.port b { font-family: var(--mono); font-weight: 600; color: var(--fg); }
-.port:hover b { color: var(--accent); }
+@media (max-width: 900px) {
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .list-panel, .detail-wrap, .sidebar { min-width: 0; }
+  .sidebar { flex-direction: row; align-items: center; gap: 8px; padding: 8px 12px; border-right: none; border-bottom: 1px solid var(--hairline); overflow: visible; }
+  .brand { padding: 0 4px 0 0; }
+  .nav { flex-direction: row; flex: 1; gap: 2px; min-width: 0; overflow-x: auto; }
+  .nav button { padding: 0 10px; height: 36px; }
+  .nav .lbl { display: inline; }
+  .nav .count { position: static; font-size: 12px; }
+  .nav .count:not(.has-new) { display: inline-flex; }
+  .nav .count.has-new { font-size: 12px; }
+  .side-grow { display: none; }
+  .live { margin: 0; }
+  .list-panel, .detail-wrap { grid-row: 2; grid-column: 1; border-right: none; }
+  .app.show-detail .list-panel { display: none; }
+  .app:not(.show-detail) .detail-wrap { display: none; }
+  .back { display: inline-flex; }
+  .detail-inner, .form { padding: 16px; }
+  .d-head { flex-wrap: wrap; }
+  .form .grid, .form .grid.two { grid-template-columns: 1fr 1fr; }
+  .vtabs { flex-wrap: wrap; }
+  .vtabs .grow { flex-basis: 100%; height: 0; }
+  .seg { margin: 8px 0; }
+  .vtabs > button { padding: 0 10px; }
+}
+@media (max-width: 560px) {
+  .row .x, .search kbd, .code-big kbd, .detail-empty kbd { display: none; }
+}
+@media (max-width: 420px) {
+  .nav .lbl { display: none; }
+  .nav button { padding: 0 12px; }
+}
 </style>
 </head>
 <body>
-<header>
-  <h1>mailhook</h1>
-  <div class="ports">
-    <button class="port" data-act="copy" data-v="{{SMTP_ADDR}}" title="SMTP server for apps under test (no TLS, no auth). Click to copy.">SMTP <b>{{SMTP_ADDR}}</b></button>
-    <button class="port" data-act="copy" data-v="{{HOOK_URL}}/" title="Point SMS or webhook senders here, any path. Click to copy.">Hooks <b>{{HOOK_URL}}</b></button>
-  </div>
-  <div class="tabs">
-    <button id="tab-mail" class="active">Mail<span class="count" id="cnt-mail">0</span></button>
-    <button id="tab-hook">Hooks<span class="count" id="cnt-hook">0</span></button>
-    <button id="tab-rule">Rules<span class="count" id="cnt-rule">0</span></button>
-  </div>
-  <input id="search" type="search" placeholder="Filter: recipient, subject, body, path…  ( / )" autocomplete="off" spellcheck="false">
-  <div class="controls">
-    <label id="livewrap" title="Stream new captures as they arrive"><span class="dot" id="livedot"></span><input type="checkbox" id="auto" checked> live</label>
-    <button id="add-rule" class="btn-primary" hidden>+ add rule</button>
-    <button id="refresh" title="Reload from server">refresh</button>
-    <button id="clear" class="btn-danger" title="Delete everything in this tab">clear</button>
-  </div>
-</header>
+<div class="app" id="app">
+  <aside class="sidebar">
+    <div class="brand"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span>mailhook</span></div>
+    <nav class="nav" aria-label="Captures">
+      <button id="tab-mail" class="active" title="Mail"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg><span class="lbl">Mail</span><span class="count" id="cnt-mail">0</span></button>
+      <button id="tab-hook" title="Webhooks"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2"/><path d="m6 17 3.13-5.78c.53-.97.1-2.18-.5-3.1a4 4 0 1 1 6.89-4.06"/><path d="m12 6 3.13 5.73C15.66 12.7 16.9 13 18 13a4 4 0 0 1 0 8"/></svg><span class="lbl">Webhooks</span><span class="count" id="cnt-hook">0</span></button>
+      <button id="tab-rule" title="Mock responses"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 10 2 2 4-4"/><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M7 20h10"/><path d="M9 16v4"/><path d="M15 16v4"/></svg><span class="lbl">Mock responses</span><span class="count" id="cnt-rule">0</span></button>
+    </nav>
+    <div class="side-grow"></div>
+    <section class="endpoints" aria-label="Endpoints">
+      <h2>Send captures to</h2>
+      <button class="port" data-act="copy" data-v="{{SMTP_ADDR}}" title="SMTP server for apps under test (no TLS, no auth). Click to copy."><span>SMTP <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><b>{{SMTP_ADDR}}</b></button>
+      <button class="port" data-act="copy" data-v="{{HOOK_URL}}/" title="Point SMS or webhook senders here, any path. Click to copy."><span>Webhooks, any path <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span><b>{{HOOK_URL}}</b></button>
+    </section>
+    <label class="live" id="livewrap" title="Stream new captures as they arrive"><span class="dot" id="livedot"></span><span>Live updates</span><input type="checkbox" id="auto" checked aria-label="Live updates"></label>
+    <div class="keys" aria-label="Keyboard shortcuts"><span><kbd>↑</kbd> <kbd>↓</kbd> move</span><span><kbd>/</kbd> filter</span><span><kbd>c</kbd> copy code</span><span><kbd>o</kbd> open link</span></div>
+  </aside>
 
-<div id="rule-form">
-  <h2 id="rule-form-title">New rule</h2>
-  <div class="grid">
-    <div>
-      <label>Method</label>
-      <select id="rf-method">
-        <option value="*">* (any)</option>
-        <option value="GET">GET</option>
-        <option value="POST" selected>POST</option>
-        <option value="PUT">PUT</option>
-        <option value="PATCH">PATCH</option>
-        <option value="DELETE">DELETE</option>
-        <option value="HEAD">HEAD</option>
-        <option value="OPTIONS">OPTIONS</option>
-      </select>
+  <section class="list-panel" aria-label="Captured items">
+    <div class="list-head">
+      <label class="search"><svg class="ic sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="search" type="search" placeholder="Filter" aria-label="Filter" autocomplete="off" spellcheck="false"><kbd>/</kbd></label>
+      <button id="add-rule" class="btn-primary" hidden><svg class="ic sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+      <button id="refresh" class="btn-ghost btn-icon" title="Reload from server" aria-label="Reload from server"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><path d="M21 3v5h-5"/></svg></button>
+      <button id="clear" class="btn-ghost btn-icon btn-danger" title="Delete everything in this list" aria-label="Delete everything in this list"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
     </div>
-    <div>
-      <label>Path</label>
-      <input id="rf-path" type="text" placeholder="/sms/send  ·  /api/*  ·  *">
-    </div>
-    <div>
-      <label>Status</label>
-      <input id="rf-status" type="number" value="200" min="100" max="599">
-    </div>
-    <div>
-      <label>Delay (ms)</label>
-      <input id="rf-delay" type="number" value="0" min="0">
-    </div>
-  </div>
-  <div class="frow">
-    <label>Response headers (one per line, <code>Key: Value</code>)</label>
-    <textarea id="rf-headers" placeholder="Content-Type: application/json&#10;X-Provider: mailhook"></textarea>
-  </div>
-  <div class="frow">
-    <label>Response body</label>
-    <textarea id="rf-body" placeholder='{"messageId":"abc","queued":true}'></textarea>
-    <div class="hint">JSON-looking bodies auto-get <code>Content-Type: application/json</code> unless you set one above.</div>
-  </div>
-  <div class="form-actions">
-    <button id="rf-cancel">cancel</button>
-    <button id="rf-save" class="btn-primary">save</button>
-  </div>
+    <div class="list-scroll" id="list-panel"><div id="list"></div></div>
+  </section>
+
+  <section class="detail-wrap" id="detail-wrap" aria-label="Details">
+    <form id="rule-form" novalidate>
+      <div class="form">
+        <button type="button" class="back btn-ghost btn-sm" data-act="form-back"><svg class="ic sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>Back</button>
+        <h2 id="rule-form-title">New mock response</h2>
+        <p class="lead">Webhook requests that match this method and path get this response instead of the default <code>200</code>.</p>
+        <div class="grid">
+          <div class="field">
+            <label for="rf-method">Method</label>
+            <select id="rf-method">
+              <option value="*">Any</option>
+              <option value="GET">GET</option>
+              <option value="POST" selected>POST</option>
+              <option value="PUT">PUT</option>
+              <option value="PATCH">PATCH</option>
+              <option value="DELETE">DELETE</option>
+              <option value="HEAD">HEAD</option>
+              <option value="OPTIONS">OPTIONS</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="rf-path">Path<span class="req" aria-hidden="true">*</span></label>
+            <input id="rf-path" type="text" required placeholder="/sms/send" spellcheck="false" autocomplete="off" aria-describedby="rf-path-hint rf-path-err">
+            <span class="hint" id="rf-path-hint">Exact path, a prefix like <code>/api/*</code>, or <code>*</code> for any.</span>
+            <span class="err-msg" id="rf-path-err" role="alert" hidden>Enter a path, or <code>*</code> to match any path.</span>
+          </div>
+        </div>
+        <div class="grid two">
+          <div class="field">
+            <label for="rf-status">Status</label>
+            <input id="rf-status" type="number" value="200" min="100" max="599" inputmode="numeric">
+          </div>
+          <div class="field">
+            <label for="rf-delay">Delay in ms <span class="opt">(optional)</span></label>
+            <input id="rf-delay" type="number" value="0" min="0" inputmode="numeric">
+          </div>
+        </div>
+        <div class="field">
+          <label for="rf-body">Response body <span class="opt">(optional)</span></label>
+          <textarea id="rf-body" rows="5" spellcheck="false" placeholder='{"messageId":"abc","queued":true}'></textarea>
+          <span class="hint">A body that looks like JSON is sent with <code>Content-Type: application/json</code> unless you set one below.</span>
+        </div>
+        <div class="field">
+          <label for="rf-headers">Response headers <span class="opt">(optional)</span></label>
+          <textarea id="rf-headers" rows="3" spellcheck="false" placeholder="Retry-After: 5"></textarea>
+          <span class="hint">One per line, as <code>Name: value</code>.</span>
+        </div>
+        <div class="form-actions">
+          <button type="submit" id="rf-save" class="btn-primary">Save response</button>
+          <button type="button" id="rf-cancel" class="btn-ghost">Cancel</button>
+        </div>
+      </div>
+    </form>
+    <div class="detail-panel" id="detail-panel"></div>
+  </section>
 </div>
-
-<main>
-  <div class="list-panel" id="list-panel"><div id="list"></div></div>
-  <div class="detail-panel" id="detail-panel"></div>
-</main>
-<footer>
-  <span>SMTP {{SMTP}} · HOOK {{HOOK}} · API {{API}}</span>
-  <span class="grow"></span>
-  <span><kbd>↑</kbd><kbd>↓</kbd> move · <kbd>/</kbd> filter · <kbd>c</kbd> copy code · <kbd>o</kbd> open first link</span>
-</footer>
-<div id="toast"></div>
-
+<div id="toast" role="status" aria-live="polite"><svg class="ic sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span></span></div>
 <script>
 const CFG = { smtp: '{{SMTP}}', hook: '{{HOOK}}', hookURL: '{{HOOK_URL}}', cap: Number('{{CAP}}') || 500 };
 const KINDS = ['mail', 'hook', 'rule'];
@@ -311,6 +440,33 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 
 // ---------- helpers ----------
 
+// Line icons (Lucide paths), one stroke width everywhere.
+const ICONS = {
+  trash: '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>',
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  ext: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+  down: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  clip: '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+  chev: '<path d="m6 9 6 6 6-6"/>',
+  back: '<path d="m15 18-6-6 6-6"/>',
+  edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  terminal: '<path d="m4 17 6-6-6-6"/><path d="M12 19h8"/>',
+  inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  hook: '<path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2"/><path d="m6 17 3.13-5.78c.53-.97.1-2.18-.5-3.1a4 4 0 1 1 6.89-4.06"/><path d="m12 6 3.13 5.73C15.66 12.7 16.9 13 18 13a4 4 0 0 1 0 8"/>',
+  mock: '<path d="m9 10 2 2 4-4"/><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M7 20h10"/><path d="M9 16v4"/><path d="M15 16v4"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  msg: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+};
+const ic = (n, cls = '') => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
+
+function fmtShort(t) {
+  const d = new Date(t), now = new Date();
+  return d.toDateString() === now.toDateString()
+    ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
 function fmtTime(t) {
   const d = new Date(t), now = new Date();
   const hms = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -403,7 +559,7 @@ function parseForm(s) {
 
 function toast(msg) {
   const t = $('toast');
-  t.textContent = msg;
+  t.querySelector('span').textContent = msg;
   t.classList.add('show');
   clearTimeout(toast.timer);
   toast.timer = setTimeout(() => t.classList.remove('show'), 1300);
@@ -474,18 +630,23 @@ function hookGroups(items) {
 // ---------- list ----------
 
 function codeChips(codes) {
-  return (codes || []).slice(0, 2).map(c => `<span class="chip code" data-act="copy" data-v="${esc(c)}" title="copy code">${esc(c)}</span>`).join('');
+  return (codes || []).slice(0, 2).map(c => `<span class="chip code" data-act="copy" data-v="${esc(c)}" title="Copy code">${esc(c)}</span>`).join('');
+}
+function delBtn(id, label) {
+  return `<button class="x btn-sm btn-icon btn-danger" data-act="del" data-id="${esc(id)}" title="Delete" aria-label="Delete ${esc(label)}">${ic('trash', 'sm')}</button>`;
 }
 
 function mailRow(m) {
   const nAtt = (m.attachments || []).filter(a => !a.inline).length;
   const nLinks = (m.links || []).filter(l => /^https?:/i.test(l.url)).length;
+  const to = (m.to || []).filter(Boolean);
+  const who = to.length ? esc(to[0]) + (to.length > 1 ? ` <span class="more-n">+${to.length - 1}</span>` : '') : '(no recipient)';
   return `<div class="${rowCls(m.id)}" data-id="${esc(m.id)}">
-    <div class="r1"><span class="who" title="${esc((m.to || []).join(', '))}">${esc(firstAddr(m.to))}</span><span class="time">${fmtTime(m.time)}</span></div>
+    <div class="r1"><span class="who" title="${esc(to.join(', '))}">${who}</span><span class="time" title="${esc(fmtTime(m.time))}">${fmtShort(m.time)}</span></div>
     <div class="subj">${esc(m.subject || '(no subject)')}</div>
     <div class="snip">${esc(mailText(m).slice(0, 160))}</div>
-    <div class="chips">${codeChips(m.codes)}${nLinks ? `<span class="chip">${nLinks} link${nLinks > 1 ? 's' : ''}</span>` : ''}${nAtt ? `<span class="chip">📎 ${nAtt}</span>` : ''}</div>
-    <button class="x btn-danger" data-act="del" data-id="${esc(m.id)}" title="delete">×</button>
+    <div class="chips">${codeChips(m.codes)}${nLinks ? `<span class="chip">${ic('link')}${nLinks}</span>` : ''}${nAtt ? `<span class="chip">${ic('clip')}${nAtt}</span>` : ''}</div>
+    ${delBtn(m.id, m.subject || 'mail')}
   </div>`;
 }
 
@@ -497,19 +658,20 @@ function hookRow(h) {
   else if (h.query) line = '?' + decodeURIComponentSafe(h.query);
   const st = h.status && h.status !== 200 ? `<span class="chip ${h.status >= 400 ? 'err' : 'warn'}">${h.status}</span>` : '';
   return `<div class="${rowCls(h.id)}" data-id="${esc(h.id)}">
-    <div class="r1"><span class="method ${method}">${method}</span><span class="path">${esc(h.path)}</span><span class="time">${fmtTime(h.time)}</span></div>
-    <div class="snip">${esc(line.replace(/\s+/g, ' ').slice(0, 180)) || '<i>(empty body)</i>'}</div>
-    <div class="chips">${h.sms ? '<span class="chip smsc">SMS</span>' : ''}${codeChips(h.codes)}${st}${h.rule ? '<span class="chip">rule</span>' : ''}</div>
-    <button class="x btn-danger" data-act="del" data-id="${esc(h.id)}" title="delete">×</button>
+    <div class="r1"><span class="method ${method}">${method}</span><span class="path">${esc(h.path)}</span><span class="time" title="${esc(fmtTime(h.time))}">${fmtShort(h.time)}</span></div>
+    <div class="snip">${esc(line.replace(/\s+/g, ' ').slice(0, 180)) || '<i>Empty body</i>'}</div>
+    <div class="chips">${h.sms ? `<span class="chip smsc">${ic('msg')}SMS</span>` : ''}${codeChips(h.codes)}${st}${h.rule ? '<span class="chip">Mocked</span>' : ''}</div>
+    ${delBtn(h.id, method + ' ' + h.path)}
   </div>`;
 }
 
 function ruleRow(r) {
   const method = (r.method && r.method !== '*') ? esc(r.method.toUpperCase()) : 'ANY';
+  const st = r.status || 200;
   return `<div class="${rowCls(r.id)}" data-id="${esc(r.id)}">
-    <div class="r1"><span class="method ${method}">${method}</span><span class="path">${esc(r.path || '*')}</span><span class="time">→ ${r.status || 200}</span></div>
-    <div class="snip">${esc((r.body || '(empty body)').slice(0, 160))}${r.delay_ms ? ' · ' + r.delay_ms + ' ms delay' : ''}</div>
-    <button class="x btn-danger" data-act="del" data-id="${esc(r.id)}" title="delete">×</button>
+    <div class="r1"><span class="method ${method}">${method}</span><span class="path">${esc(r.path || '*')}</span><span class="chip ${st >= 400 ? 'err' : st >= 300 ? 'warn' : 'ok'}">${st}</span></div>
+    <div class="snip">${r.body ? esc(r.body.slice(0, 160)) : '<i>Empty body</i>'}${r.delay_ms ? ' · ' + r.delay_ms + ' ms delay' : ''}</div>
+    ${delBtn(r.id, method + ' ' + (r.path || '*'))}
   </div>`;
 }
 
@@ -519,31 +681,31 @@ function rowCls(id) {
 }
 
 function emptyHTML() {
-  if (state.q) return `<div class="empty">Nothing matches “${esc(state.q)}”.</div>`;
-  if (state.tab === 'rule') return '<div class="empty">No rules yet. Click <b>+ add rule</b> to mock a response for a method and path.</div>';
-  if (state.tab === 'hook') return `<div class="empty">No webhooks yet. Point your app's SMS / HTTP notifier at <code>${esc(CFG.hookURL)}/&lt;any path&gt;</code>.
+  if (state.q) return `<div class="empty">${ic('search')}<h3>No matches</h3><p>Nothing here matches “${esc(state.q)}”. Press <kbd>Esc</kbd> to clear the filter.</p></div>`;
+  if (state.tab === 'rule') return `<div class="empty">${ic('mock')}<h3>No mock responses</h3><p>Webhooks get <code>200</code> with a small JSON body by default. Add a mock to answer a method and path with your own status, body or delay.</p><button class="btn-primary" data-act="new-rule">New mock response</button></div>`;
+  if (state.tab === 'hook') return `<div class="empty">${ic('hook')}<h3>No webhooks yet</h3><p>Point your app's SMS or HTTP notifier at <code>${esc(CFG.hookURL)}/</code> followed by any path.</p>
     <pre>curl -X POST ${esc(CFG.hookURL)}/sms \\\n  -H 'Content-Type: application/json' \\\n  -d '{"to":"+94771234567","message":"Your code is 123456"}'</pre></div>`;
-  return `<div class="empty">No mail yet. Send SMTP to <code>127.0.0.1${esc(CFG.smtp)}</code> (no TLS, no auth).
+  return `<div class="empty">${ic('inbox')}<h3>No mail yet</h3><p>Send SMTP to <code>127.0.0.1${esc(CFG.smtp)}</code>, with no TLS and no auth. New mail shows up here at once.</p>
     <pre>swaks --server 127.0.0.1${esc(CFG.smtp)} --to user@example.com \\\n  --header "Subject: OTP 482913" --body "Code: 482913"</pre></div>`;
 }
 
 function answerHTML(method, path) {
   const r = ruleFor(method, path);
-  return r ? `<span class="rule" title="rule ${esc(r.id)}">${esc(method)} → <b>${r.status || 200}</b> rule</span>`
-           : `${esc(method)} → <b>200</b> default`;
+  return r ? `<span class="ans rule" title="Mocked by ${esc(r.id)}">${esc(method)} · mock ${r.status || 200}</span>`
+           : `<span class="ans">${esc(method)} · 200</span>`;
 }
 
 function groupHeader(g) {
   const methods = [...new Set(g.hooks.map(h => (h.method || 'GET').toUpperCase()))];
   const closed = state.collapsed.has(g.path);
   const rule = ruleFor(methods[0], g.path);
-  return `<div class="group" data-act="toggle-group" data-v="${esc(g.path)}">
-    <span class="tw">${closed ? '▸' : '▾'}</span>
+  return `<div class="group${closed ? ' closed' : ''}" data-act="toggle-group" data-v="${esc(g.path)}" role="button" tabindex="0" aria-expanded="${!closed}">
+    <span class="tw">${ic('chev', 'sm')}</span>
     <span class="gp" title="${esc(g.path)}">${esc(g.path)}</span>
     <span class="count">${g.hooks.length}</span>
-    <span class="ans">${methods.map(m => answerHTML(m, g.path)).join(' · ')}</span>
-    <button class="btn-sm" data-act="mock" data-m="${esc(methods[0])}" data-v="${esc(g.path)}"
-      title="Define what mailhook answers on this path">${rule ? 'Edit response' : 'Set response'}</button>
+    ${methods.map(m => answerHTML(m, g.path)).join('')}
+    <button class="btn-sm btn-ghost" data-act="mock" data-m="${esc(methods[0])}" data-v="${esc(g.path)}"
+      title="Choose what mailhook answers on this path">${rule ? 'Edit mock' : 'Mock'}</button>
   </div>`;
 }
 
@@ -557,9 +719,9 @@ function renderList() {
   } else html = items.map(row).join('');
   if (state.tab === 'hook' && state.data.hook.length) {
     const paths = new Set(state.data.hook.map(h => h.path)).size;
-    html = `<div class="list-tools"><label><input type="checkbox" data-act="group" ${state.group ? 'checked' : ''}> group by path</label>
-      <span>${paths} path${paths === 1 ? '' : 's'}</span><span class="grow"></span>
-      ${state.group ? '<button class="btn-sm" data-act="collapse-all">collapse all</button><button class="btn-sm" data-act="expand-all">expand all</button>' : ''}</div>` + html;
+    html = `<div class="list-tools"><label><input type="checkbox" data-act="group" ${state.group ? 'checked' : ''}> Group by path</label>
+      <span class="tnum">· ${paths} path${paths === 1 ? '' : 's'}</span><span class="grow"></span>
+      ${state.group ? (state.collapsed.size ? '<button class="btn-sm btn-ghost" data-act="expand-all">Expand all</button>' : '<button class="btn-sm btn-ghost" data-act="collapse-all">Collapse all</button>') : ''}</div>` + html;
   }
   $('list').innerHTML = html;
 }
@@ -579,7 +741,9 @@ function renderCounts() {
 
 function codesCard(codes) {
   if (!codes || !codes.length) return '';
-  return `<div class="codes">${codes.map(c => `<button class="code-big" data-act="copy" data-v="${esc(c)}" title="Click to copy">${esc(c)}<small>copy</small></button>`).join('')}</div>`;
+  return `<div class="codes">${codes.map((c, i) => `<button class="code-big" data-act="copy" data-v="${esc(c)}" title="Copy ${esc(c)}">
+    <span class="cv"><span class="cl">${codes.length > 1 ? 'Code ' + (i + 1) : 'Verification code'}</span><span class="cn">${esc(c)}</span></span>
+    <span class="cc">${ic('copy', 'sm')}Copy${i === 0 ? ' <kbd>c</kbd>' : ''}</span></button>`).join('')}</div>`;
 }
 
 function linksCard(id, links) {
@@ -597,24 +761,24 @@ function linksCard(id, links) {
       <div class="link-top">
         <span class="link-label" title="${esc(l.text || l.url)}">${esc(label)}${l.text && host ? `<span class="host">${esc(host)}</span>` : ''}</span>
         <span class="link-btns">
-          ${params.length ? `<button class="btn-sm" data-act="params" data-k="${esc(key)}">${params.length} param${params.length > 1 ? 's' : ''} ${open ? '▴' : '▾'}</button>` : ''}
-          <button class="btn-sm" data-act="copy" data-v="${esc(l.url)}">Copy</button>
-          ${href ? `<a class="btn btn-sm btn-primary" href="${esc(href)}" target="_blank" rel="noopener noreferrer">Open ↗</a>` : ''}
+          ${params.length ? `<button class="btn-sm btn-ghost" data-act="params" data-k="${esc(key)}" aria-expanded="${open}">${params.length} param${params.length > 1 ? 's' : ''}<svg class="ic sm" viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(${open ? 180 : 0}deg)">${ICONS.chev}</svg></button>` : ''}
+          <button class="btn-sm" data-act="copy" data-v="${esc(l.url)}">${ic('copy', 'sm')}Copy</button>
+          ${href ? `<a class="btn btn-sm" href="${esc(href)}" target="_blank" rel="noopener noreferrer">Open${ic('ext', 'sm')}</a>` : ''}
         </span>
       </div>
       <div class="link-url">${urlHTML(l.url)}</div>
-      ${open ? `<table class="params">${params.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="v">${esc(v)}</td><td><button class="btn-sm" data-act="copy" data-v="${esc(v)}">Copy</button></td></tr>`).join('')}</table>` : ''}
+      ${open ? `<table class="params">${params.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="v">${esc(v)}</td><td><button class="btn-sm btn-ghost btn-icon" data-act="copy" data-v="${esc(v)}" title="Copy value" aria-label="Copy ${esc(k)}">${ic('copy', 'sm')}</button></td></tr>`).join('')}</table>` : ''}
     </div>`;
   }).join('');
-  const more = links.length > 6 ? `<div class="more"><button class="btn-sm" data-act="all-links" data-id="${esc(id)}">${all ? 'Show fewer' : `Show all ${links.length} links`}</button></div>` : '';
+  const more = links.length > 6 ? `<div class="more"><button class="btn-sm btn-ghost" data-act="all-links" data-id="${esc(id)}">${all ? 'Show fewer' : `Show all ${links.length} links`}</button></div>` : '';
   return `<div class="card"><div class="card-h">Links <span class="count">${links.length}</span><span class="grow"></span>
-    ${links.length > 1 ? `<button class="btn-sm" data-act="copy" data-v="${esc(links.map(l => l.url).join('\n'))}">Copy all</button>` : ''}</div>
+    ${links.length > 1 ? `<button class="btn-sm btn-ghost" data-act="copy" data-v="${esc(links.map(l => l.url).join('\n'))}">${ic('copy', 'sm')}Copy all</button>` : ''}</div>
     <div class="links">${items}</div>${more}</div>`;
 }
 
 function kvTable(rows) {
   if (!rows.length) return '<div class="pre">(none)</div>';
-  return `<div class="card"><table class="kv">${rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="v">${esc(v)}</td><td><button class="btn-sm" data-act="copy" data-v="${esc(v)}">Copy</button></td></tr>`).join('')}</table></div>`;
+  return `<div class="card"><table class="kv">${rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="v">${esc(v)}</td><td><button class="btn-sm btn-ghost btn-icon" data-act="copy" data-v="${esc(v)}" title="Copy value" aria-label="Copy ${esc(k)}">${ic('copy', 'sm')}</button></td></tr>`).join('')}</table></div>`;
 }
 
 function vtabs(id, tabs, active, extra = '') {
@@ -686,7 +850,7 @@ function renderMailDetail(m) {
     const ico = a.content_type.startsWith('image/') ? `<img src="${url}" alt="">` : esc(ext);
     return `<div class="att"><span class="ico">${ico}</span><span><div class="nm" title="${esc(a.filename || a.content_type)}">${esc(a.filename || (a.content_id ? 'cid:' + a.content_id : a.content_type))}</div>
       <div class="sz">${esc(a.content_type)} · ${size(a.size)}${a.inline ? ' · inline' : ''}</div></span>
-      <a class="btn btn-sm" href="${url}" target="_blank" rel="noopener">Open</a><a class="btn btn-sm" href="${url}?download=1">⬇</a></div>`;
+      <span class="a-btns"><a class="btn btn-sm" href="${url}" target="_blank" rel="noopener">Open</a><a class="btn btn-sm btn-icon" href="${url}?download=1" title="Download" aria-label="Download ${esc(a.filename || 'attachment')}">${ic('down', 'sm')}</a></span></div>`;
   }).join('')}</div></div>` : '';
 
   let body;
@@ -704,15 +868,16 @@ function renderMailDetail(m) {
   } else {
     body = `<div class="pre">${esc(m.raw || m.body || '(empty)')}</div>`;
   }
-  const widthSeg = view === 'preview' ? `<span class="seg" title="Preview width">${[['full', 'Desktop'], ['600', '600'], ['375', 'Mobile']].map(([k, l]) =>
-    `<button data-act="width" data-v="${k}" class="${state.width === k ? 'active' : ''}">${l}</button>`).join('')}</span>` : '';
+  const widthSeg = view === 'preview' ? `<span class="seg" role="group" aria-label="Preview width">${[['full', 'Desktop'], ['600', '600 px'], ['375', 'Mobile']].map(([k, l]) =>
+    `<button data-act="width" data-v="${k}" class="${state.width === k ? 'active' : ''}" aria-pressed="${state.width === k}">${l}</button>`).join('')}</span>` : '';
 
   return `
+    ${backBtn()}
     <div class="d-head">
-      <div class="d-title">${esc(m.subject || '(no subject)')}</div>
+      <h1 class="d-title">${esc(m.subject || '(no subject)')}</h1>
       <div class="d-actions">
-        <a class="btn btn-sm" href="/mail/${encodeURIComponent(m.id)}/eml" title="Download as .eml (opens in a mail client)">⬇ .eml</a>
-        <button class="btn-sm btn-danger" data-act="del" data-id="${esc(m.id)}">delete</button>
+        <a class="btn" href="/mail/${encodeURIComponent(m.id)}/eml" title="Download as .eml (opens in a mail client)">${ic('down', 'sm')}.eml</a>
+        <button class="btn-icon btn-danger" data-act="del" data-id="${esc(m.id)}" title="Delete" aria-label="Delete this mail">${ic('trash', 'sm')}</button>
       </div>
     </div>
     <dl class="meta">
@@ -765,8 +930,8 @@ function renderHookDetail(h) {
   else if (view === 'query') content = kvTable(query);
   else content = kvTable(headerRows);
 
-  const sms = h.sms ? `<div class="card"><div class="card-h">Message<span class="grow"></span>
-      <button class="btn-sm" data-act="copy" data-v="${esc(h.sms.text)}">Copy text</button></div>
+  const sms = h.sms ? `<div class="card"><div class="card-h">SMS message<span class="grow"></span>
+      <button class="btn-sm btn-ghost" data-act="copy" data-v="${esc(h.sms.text)}">${ic('copy', 'sm')}Copy text</button></div>
     <div class="sms">
       ${h.sms.to || h.sms.from ? `<div class="sms-who">${h.sms.to ? `<span>To <b>${esc(h.sms.to)}</b></span>` : ''}${h.sms.from ? `<span>From <b>${esc(h.sms.from)}</b></span>` : ''}</div>` : ''}
       <div class="bubble">${richText(h.sms.text, h.codes)}</div>
@@ -774,19 +939,20 @@ function renderHookDetail(h) {
 
   const st = h.status || 200;
   return `
+    ${backBtn()}
     <div class="d-head">
-      <div class="d-title"><span class="method ${method}">${method}</span> <span class="path">${esc(h.path)}</span></div>
+      <h1 class="d-title"><span class="method ${method}">${method}</span><span class="path">${esc(h.path)}</span></h1>
       <div class="d-actions">
-        <button class="btn-sm" data-act="curl" data-id="${esc(h.id)}" title="Copy a curl command that replays this request to mailhook">Copy as curl</button>
-        <button class="btn-sm btn-danger" data-act="del" data-id="${esc(h.id)}">delete</button>
+        <button data-act="curl" data-id="${esc(h.id)}" title="Copy a curl command that replays this request to mailhook">${ic('terminal', 'sm')}Copy as curl</button>
+        <button class="btn-icon btn-danger" data-act="del" data-id="${esc(h.id)}" title="Delete" aria-label="Delete this request">${ic('trash', 'sm')}</button>
       </div>
     </div>
     <dl class="meta">
       <dt>Received</dt><dd>${new Date(h.time).toLocaleString()} <span class="sub">· ${ago(h.time)} · <code>${esc(h.id)}</code></span></dd>
-      <dt>From</dt><dd>${esc(h.remote || '')}</dd>
+      <dt>From</dt><dd class="mono">${esc(h.remote || '')}</dd>
       ${ct ? `<dt>Type</dt><dd>${esc(ct)} <span class="sub">· ${size(body.length)}</span></dd>` : ''}
-      <dt>Answered</dt><dd><span class="chip ${st >= 400 ? 'err' : st !== 200 ? 'warn' : ''}">${st}</span> ${h.rule ? `by rule <a href="#rule/${esc(h.rule)}" data-act="goto-rule" data-id="${esc(h.rule)}"><code>${esc(h.rule)}</code></a>` : '<span class="sub">default response</span>'}
-        <button class="btn-sm" data-act="mock" data-m="${method}" data-v="${esc(h.path)}" style="margin-left:6px">${ruleFor(h.method, h.path) ? 'Edit response' : 'Set response'} for ${method} ${esc(h.path)}</button></dd>
+      <dt>Replied</dt><dd><span class="chip ${st >= 400 ? 'err' : st !== 200 ? 'warn' : 'ok'}">${st}</span> ${h.rule ? `from mock <a href="#rule/${esc(h.rule)}" data-act="goto-rule" data-id="${esc(h.rule)}"><code>${esc(h.rule)}</code></a>` : '<span class="sub">default response</span>'}
+        <button class="btn-sm" data-act="mock" data-m="${method}" data-v="${esc(h.path)}">${ruleFor(h.method, h.path) ? 'Edit mock' : 'Mock this path'}</button></dd>
     </dl>
     ${codesCard(h.codes)}
     ${sms}
@@ -802,22 +968,23 @@ function renderRuleDetail(r) {
   const headerRows = Object.entries(r.headers || {});
   const json = r.body ? parseJSON(r.body) : { ok: false };
   const hits = state.data.hook.filter(h => h.rule === r.id).length;
+  const st = r.status || 200;
   return `
+    ${backBtn()}
     <div class="d-head">
-      <div class="d-title"><span class="method ${method}">${method}</span> <span class="path">${esc(r.path || '*')}</span></div>
+      <h1 class="d-title"><span class="method ${method}">${method}</span><span class="path">${esc(r.path || '*')}</span></h1>
       <div class="d-actions">
-        <button class="btn-sm" data-act="edit-rule" data-id="${esc(r.id)}">edit</button>
-        <button class="btn-sm btn-danger" data-act="del" data-id="${esc(r.id)}">delete</button>
+        <button class="btn-primary" data-act="edit-rule" data-id="${esc(r.id)}">${ic('edit', 'sm')}Edit</button>
+        <button class="btn-icon btn-danger" data-act="del" data-id="${esc(r.id)}" title="Delete" aria-label="Delete this mock response">${ic('trash', 'sm')}</button>
       </div>
     </div>
     <dl class="meta">
-      <dt>Status</dt><dd>${r.status || 200}</dd>
-      <dt>Delay</dt><dd>${r.delay_ms || 0} ms</dd>
-      <dt>Matched</dt><dd>${hits} captured request${hits === 1 ? '' : 's'}</dd>
+      <dt>Replies</dt><dd><span class="chip ${st >= 400 ? 'err' : st >= 300 ? 'warn' : 'ok'}">${st}</span>${r.delay_ms ? ` <span class="sub">after ${r.delay_ms} ms</span>` : ''}</dd>
+      <dt>Matched</dt><dd class="tnum">${hits} captured request${hits === 1 ? '' : 's'}</dd>
       <dt>Created</dt><dd>${new Date(r.created).toLocaleString()} <span class="sub">· <code>${esc(r.id)}</code></span></dd>
     </dl>
-    <div class="card"><div class="card-h">Response headers</div>${headerRows.length ? `<table class="kv">${headerRows.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="v">${esc(v)}</td></tr>`).join('')}</table>` : '<div class="card-b sub">(none)</div>'}</div>
-    <div class="card"><div class="card-h">Response body</div><div class="card-b"><div class="pre">${r.body ? (json.ok ? hlJSON(json.v) : esc(r.body)) : '(empty)'}</div></div></div>`;
+    <div class="card"><div class="card-h">Response body</div>${r.body ? `<div class="pre" style="border:0;border-radius:0">${json.ok ? hlJSON(json.v) : esc(r.body)}</div>` : '<div class="card-b sub">Empty</div>'}</div>
+    <div class="card"><div class="card-h">Response headers <span class="count">${headerRows.length}</span></div>${headerRows.length ? `<table class="kv">${headerRows.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="v">${esc(v)}</td></tr>`).join('')}</table>` : '<div class="card-b sub">None</div>'}</div>`;
 }
 
 function renderDetail() {
@@ -825,19 +992,35 @@ function renderDetail() {
   const item = current();
   if (!item) {
     if (state.sel[state.tab]) state.sel[state.tab] = null;
-    panel.innerHTML = `<div class="detail-empty">${state.data[state.tab].length ? 'Select an item to see it here.' : ''}</div>`;
+    const n = state.data[state.tab].length;
+    panel.innerHTML = n ? `<div class="detail-empty">${ic(state.tab === 'mail' ? 'inbox' : state.tab === 'hook' ? 'hook' : 'mock')}<span>Select ${state.tab === 'mail' ? 'a mail' : state.tab === 'hook' ? 'a request' : 'a mock response'} to see it here.</span><span><kbd>↓</kbd> selects the newest</span></div>` : '';
+    syncShell();
     return;
   }
   const html = state.tab === 'mail' ? renderMailDetail(item) : state.tab === 'hook' ? renderHookDetail(item) : renderRuleDetail(item);
   panel.innerHTML = `<div class="detail-inner">${html}</div>`;
   const f = $('mail-frame');
   if (f) setupFrame(f);
+  syncShell();
+}
+
+// Narrow screens show the list or the detail, not both.
+function syncShell() {
+  const formOpen = $('detail-wrap').classList.contains('form-open');
+  $('app').classList.toggle('show-detail', formOpen || !!current());
+}
+function backBtn() {
+  return `<button class="back btn-ghost btn-sm" data-act="back">${ic('back', 'sm')}Back</button>`;
 }
 
 function render() {
   const isRule = state.tab === 'rule';
   $('add-rule').hidden = !isRule;
-  KINDS.forEach(k => $('tab-' + k).classList.toggle('active', k === state.tab));
+  KINDS.forEach(k => {
+    $('tab-' + k).classList.toggle('active', k === state.tab);
+    if (k === state.tab) $('tab-' + k).setAttribute('aria-current', 'page'); else $('tab-' + k).removeAttribute('aria-current');
+  });
+  $('search').placeholder = state.tab === 'mail' ? 'Filter mail' : state.tab === 'hook' ? 'Filter webhooks' : 'Filter mock responses';
   renderList();
   renderDetail();
   renderCounts();
@@ -860,6 +1043,7 @@ function scheduleRender(listOnly) {
 // ---------- selection & navigation ----------
 
 function select(id, opts = {}) {
+  if ($('detail-wrap').classList.contains('form-open')) closeRuleForm();
   state.sel[state.tab] = id;
   if (id) state.unread.delete(id);
   history.replaceState(null, '', id ? `#${state.tab}/${encodeURIComponent(id)}` : `#${state.tab}`);
@@ -893,7 +1077,7 @@ function move(delta) {
 // ---------- actions ----------
 
 async function deleteOne(kind, id) {
-  if (kind === 'rule' && !confirm('Delete this rule?')) return;
+  if (kind === 'rule' && !confirm('Delete this mock response? Matching webhooks will get the default 200 again.')) return;
   const res = await fetch(`/${kind}/${encodeURIComponent(id)}`, { method: 'DELETE' });
   if (!res.ok && res.status !== 404) return toast('Delete failed: ' + res.status);
   if (state.sel[kind] === id) {
@@ -912,6 +1096,9 @@ document.addEventListener('click', e => {
     if (act === 'copy') { e.preventDefault(); e.stopPropagation(); return copy(t.dataset.v); }
     if (act === 'del') { e.stopPropagation(); return deleteOne(state.tab, id); }
     if (act === 'edit-rule') return openRuleForm(id);
+    if (act === 'new-rule') return openRuleForm(null);
+    if (act === 'back') return select(null);
+    if (act === 'form-back') return closeRuleForm();
     if (act === 'view') { state.view[id] = t.dataset.v; return renderDetail(); }
     if (act === 'width') { state.width = t.dataset.v; return renderDetail(); }
     if (act === 'params') { const k = t.dataset.k; state.openParams.has(k) ? state.openParams.delete(k) : state.openParams.add(k); return keepScroll(renderDetail); }
@@ -919,7 +1106,7 @@ document.addEventListener('click', e => {
     if (act === 'curl') { const h = current(); return h && copy(curlFor(h)); }
     if (act === 'goto-rule') { e.preventDefault(); return switchTab('rule', id); }
     if (act === 'mock') { e.stopPropagation(); return openMock(t.dataset.m, t.dataset.v); }
-    if (act === 'toggle-group') { const p = t.dataset.v; state.collapsed.has(p) ? state.collapsed.delete(p) : state.collapsed.add(p); return renderList(); }
+    if (act === 'toggle-group') { const p = t.dataset.v; state.collapsed.has(p) ? state.collapsed.delete(p) : state.collapsed.add(p); renderList(); const g = document.querySelector(`.group[data-v="${CSS.escape(p)}"]`); if (g) g.focus(); return; }
     if (act === 'collapse-all') { state.data.hook.forEach(h => state.collapsed.add(h.path)); return renderList(); }
     if (act === 'expand-all') { state.collapsed.clear(); return renderList(); }
     if (act === 'group') { state.group = t.checked; lsSet('mh.group', state.group ? '1' : '0'); return renderList(); }
@@ -937,9 +1124,11 @@ function keepScroll(fn) {
 
 document.addEventListener('keydown', e => {
   const inField = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+  if ((e.key === 'Enter' || e.key === ' ') && document.activeElement.classList.contains('group')) { e.preventDefault(); document.activeElement.click(); return; }
   if (e.key === 'Escape') {
     if (document.activeElement === $('search')) { $('search').value = ''; state.q = ''; renderList(); $('search').blur(); }
-    else if ($('rule-form').classList.contains('open')) closeRuleForm();
+    else if ($('detail-wrap').classList.contains('form-open')) closeRuleForm();
+    else if ($('app').classList.contains('show-detail') && current() && matchMedia('(max-width: 900px)').matches) select(null);
     return;
   }
   if (inField || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -960,8 +1149,9 @@ $('tab-rule').onclick = () => switchTab('rule');
 $('refresh').onclick = () => loadAll().then(render);
 $('clear').onclick = async () => {
   const kind = state.tab;
-  const label = kind === 'rule' ? 'rules' : kind + ' captures';
-  if (!confirm(`Clear all ${state.data[kind].length} ${label}?`)) return;
+  const label = kind === 'rule' ? 'mock responses' : kind === 'hook' ? 'webhook requests' : 'mails';
+  if (!state.data[kind].length) return toast('Nothing to delete');
+  if (!confirm(`Delete all ${state.data[kind].length} ${label}? This cannot be undone.`)) return;
   await fetch('/' + kind, { method: 'DELETE' });
   applyEvent({ kind, op: 'clear' });
   state.sel[kind] = null;
@@ -985,25 +1175,36 @@ function openRuleForm(id, pre = {}) {
   editingRuleId = id || null;
   const r = id ? state.data.rule.find(x => x.id === id) : null;
   if (id && !r) return;
-  $('rule-form-title').textContent = id ? `Edit rule (${r.method || '*'} ${r.path})` : pre.path ? `Response for ${pre.method} ${pre.path}` : 'New rule';
+  $('rule-form-title').textContent = id ? `Edit mock for ${r.method && r.method !== '*' ? r.method : 'any method'} ${r.path}` : pre.path ? `Mock ${pre.method} ${pre.path}` : 'New mock response';
+  $('rf-save').textContent = id ? 'Save changes' : 'Save mock response';
+  showPathError(false);
   $('rf-method').value = r ? (r.method || '*') : (pre.method || 'POST');
   $('rf-path').value = r ? r.path || '' : (pre.path || '');
   $('rf-status').value = r ? r.status || 200 : 200;
   $('rf-delay').value = r ? r.delay_ms || 0 : 0;
   $('rf-headers').value = r ? Object.entries(r.headers || {}).map(([k, v]) => `${k}: ${v}`).join('\n') : '';
   $('rf-body').value = r ? r.body || '' : '';
-  $('rule-form').classList.add('open');
+  $('detail-wrap').classList.add('form-open');
+  $('rule-form').scrollTop = 0;
+  syncShell();
   setTimeout(() => (pre.path ? $('rf-status') : $('rf-path')).focus(), 30);
 }
 function closeRuleForm() {
-  $('rule-form').classList.remove('open');
+  $('detail-wrap').classList.remove('form-open');
   editingRuleId = null;
+  syncShell();
 }
 $('add-rule').onclick = () => openRuleForm(null);
 $('rf-cancel').onclick = closeRuleForm;
-$('rf-save').onclick = async () => {
+function showPathError(on) {
+  $('rf-path-err').hidden = !on;
+  $('rf-path').setAttribute('aria-invalid', on ? 'true' : 'false');
+}
+$('rf-path').addEventListener('input', () => { if ($('rf-path').value.trim()) showPathError(false); });
+$('rule-form').onsubmit = async e => {
+  e.preventDefault();
   const path = $('rf-path').value.trim();
-  if (!path) { toast('Path is required. Use "*" for any.'); $('rf-path').focus(); return; }
+  if (!path) { showPathError(true); $('rf-path').focus(); return; }
   const headers = {};
   for (const line of $('rf-headers').value.split('\n')) {
     const idx = line.indexOf(':');
@@ -1022,12 +1223,12 @@ $('rf-save').onclick = async () => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(rule),
   });
-  if (!res.ok) { toast('Save failed: ' + res.status + ' ' + (await res.text()).trim()); return; }
+  if (!res.ok) { toast('Could not save: ' + res.status + ' ' + (await res.text()).trim()); return; }
   const saved = await res.json();
   closeRuleForm();
   await loadKind('rule');
   if (state.tab === 'rule') state.sel.rule = saved.id;
-  else toast(`Saved: ${saved.method || '*'} ${saved.path} → ${saved.status}`);
+  else toast(`Saved mock: ${saved.method || '*'} ${saved.path} replies ${saved.status}`);
   render();
 };
 
@@ -1110,9 +1311,14 @@ function stopLive() {
 }
 $('auto').onchange = e => e.target.checked ? startLive() : stopLive();
 
-(async function init() {
+function fromHash() {
   const m = location.hash.match(/^#(mail|hook|rule)(?:\/(.+))?$/);
   if (m) { state.tab = m[1]; if (m[2]) state.sel[m[1]] = decodeURIComponent(m[2]); }
+}
+window.addEventListener('hashchange', () => { closeRuleForm(); fromHash(); render(); });
+
+(async function init() {
+  fromHash();
   await loadAll();
   render();
   startLive();
