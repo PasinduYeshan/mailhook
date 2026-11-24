@@ -26,6 +26,15 @@ for any app that emits SMTP or webhooks.
 
 ## Install
 
+### macOS (Homebrew)
+
+```bash
+brew install PasinduYeshan/tap/mailhook
+```
+
+Upgrade with `brew upgrade mailhook`. If a daemon is running, run
+`mailhook restart` afterwards to move it to the new version.
+
 ### Linux / macOS (prebuilt binary)
 
 ```bash
@@ -85,6 +94,7 @@ make install              # installs to $HOME/.local/bin
 
 ```bash
 mailhook stop                                  # stop daemon if running
+brew uninstall mailhook                        # if installed with Homebrew
 rm ~/.local/bin/mailhook                       # install script or `make install`
 rm "$(go env GOPATH)/bin/mailhook"             # if installed via `go install`
 
@@ -145,8 +155,11 @@ Full reference: see [`docs/cli.md`](docs/cli.md).
 
 Tag a commit and push the tag; the
 [release workflow](.github/workflows/release.yml) runs GoReleaser, builds
-Linux and macOS archives, and publishes a GitHub release with checksums and
-`install.sh`.
+Linux and macOS archives, publishes a GitHub release with checksums and
+`install.sh`, and updates the Homebrew cask in
+[PasinduYeshan/homebrew-tap](https://github.com/PasinduYeshan/homebrew-tap).
+That last step needs a `HOMEBREW_TAP_TOKEN` repository secret: a
+fine-grained token with Contents read and write on the tap repo.
 
 ```bash
 git tag v0.1.0

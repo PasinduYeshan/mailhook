@@ -58,6 +58,37 @@ changelog:
       - "Merge pull request"
       - "Merge branch"
 
+# Homebrew cask in PasinduYeshan/homebrew-tap:
+#   brew install PasinduYeshan/tap/mailhook
+# Needs the HOMEBREW_TAP_TOKEN secret (contents write on the tap repo);
+# the workflow's own token cannot push to another repository.
+homebrew_casks:
+  - name: mailhook
+    binaries:
+      - mailhook
+    homepage: "https://github.com/PasinduYeshan/mailhook"
+    description: "Local mail and webhook catcher with a web inspector and mock responses"
+    license: MIT
+    directory: Casks
+    repository:
+      owner: PasinduYeshan
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    # Pre-releases (v0.2.0-rc.1) don't update the tap.
+    skip_upload: auto
+    # The binary is not signed by Apple; clear the download quarantine so
+    # macOS lets it run.
+    hooks:
+      post:
+        install_steps: |
+          on_macos do
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/mailhook"]
+          end
+
 release:
   github:
     owner: PasinduYeshan
